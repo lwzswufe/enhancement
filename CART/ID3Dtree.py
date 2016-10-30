@@ -116,8 +116,21 @@ class ID3_tree(object):
             class_label = feat_value
         return class_label
 
+    def disp_branch(self, branch, level):
+        for item in branch.keys():
+            print('\n', level, item, end=":")
+            if isinstance(branch[item], dict):
+                self.disp_branch(branch=branch[item], level=level+'*')
+            else:
+                print(branch[item], end="")
+                return
+
+    def disp_tree(self):
+        self.disp_branch(self.tree, '')
+
 if __name__ == "__main__":
     id3 = ID3_tree()
     id3.load_dataset()
     id3.train()
+    id3.disp_tree()
     print(id3.tree)
