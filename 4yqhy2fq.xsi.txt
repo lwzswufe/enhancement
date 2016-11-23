@@ -1,0 +1,16 @@
+﻿
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+# On branch master
+# Your branch is up-to-date with 'origin/master'.
+#
+# Changes to be committed:
+#	new file:   CART/C45tree.py
+#	new file:   CART/crat.py
+#	new file:   CART/tree.dot
+#	new file:   lstm/README.md
+#	new file:   lstm/lstm.py
+#	new file:   lstm/test.py
+#	new file:   testTheano.py
+#
+
