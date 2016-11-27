@@ -1,23 +1,17 @@
-import random
-
+# author='lwz'
+# coding:utf-8
+# !/usr/bin/env python3
 import numpy as np
 import math
 
-def sigmoid(x): 
-    return 1. / (1 + np.exp(-x))
 
-# createst uniform random array w/ values in [a,b) and shape args
-def rand_arr(a, b, *args): 
-    np.random.seed(0)
-    return np.random.rand(*args) * (b - a) + a
-
-class LstmParam:
+class LstmParam(object):  # 网络初始化
     def __init__(self, mem_cell_ct, x_dim):
-        self.mem_cell_ct = mem_cell_ct
-        self.x_dim = x_dim
+        self.mem_cell_ct = mem_cell_ct  # 细胞记忆维度
+        self.x_dim = x_dim  # 外部输入维度
         concat_len = x_dim + mem_cell_ct
         # weight matrices
-        self.wg = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
+        self.wg = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)  # 随机矩阵
         self.wi = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len) 
         self.wf = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
         self.wo = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
@@ -36,7 +30,7 @@ class LstmParam:
         self.bf_diff = np.zeros(mem_cell_ct) 
         self.bo_diff = np.zeros(mem_cell_ct) 
 
-    def apply_diff(self, lr = 1):
+    def apply_diff(self, lr=1):  # 梯度下降法修正误差
         self.wg -= lr * self.wg_diff
         self.wi -= lr * self.wi_diff
         self.wf -= lr * self.wf_diff
@@ -55,7 +49,8 @@ class LstmParam:
         self.bf_diff = np.zeros_like(self.bf) 
         self.bo_diff = np.zeros_like(self.bo) 
 
-class LstmState:
+
+class LstmState(object):
     def __init__(self, mem_cell_ct, x_dim):
         self.g = np.zeros(mem_cell_ct)
         self.i = np.zeros(mem_cell_ct)
@@ -66,21 +61,26 @@ class LstmState:
         self.bottom_diff_h = np.zeros_like(self.h)
         self.bottom_diff_s = np.zeros_like(self.s)
         self.bottom_diff_x = np.zeros(x_dim)
-    
-class LstmNode:
+
+
+class LstmNode(object):
     def __init__(self, lstm_param, lstm_state):
         # store reference to parameters and to activations
         self.state = lstm_state
-        self.param = lstm_param
+        self.param = lstm_param  # net对象
         # non-recurrent input to node
         self.x = None
         # non-recurrent input concatenated with recurrent input
         self.xc = None
+        self.h_prev = None
+        self.s_prev = None
 
-    def bottom_data_is(self, x, s_prev = None, h_prev = None):
+    def bottom_data_is(self, x, s_prev=None, h_prev=None):
         # if this is the first lstm node in the network
-        if s_prev == None: s_prev = np.zeros_like(self.state.s)
-        if h_prev == None: h_prev = np.zeros_like(self.state.h)
+        if s_prev is None:
+            s_prev = np.zeros_like(self.state.s)
+        if h_prev is None:
+            h_prev = np.zeros_like(self.state.h)
         # save data for use in backprop
         self.s_prev = s_prev
         self.h_prev = h_prev
@@ -132,10 +132,11 @@ class LstmNode:
         self.state.bottom_diff_x = dxc[:self.param.x_dim]
         self.state.bottom_diff_h = dxc[self.param.x_dim:]
 
-class LstmNetwork():
+
+class LstmNetwork(object):
     def __init__(self, lstm_param):
         self.lstm_param = lstm_param
-        self.lstm_node_list = []
+        self.lstm_node_list = []  # 节点(Node)
         # input sequence
         self.x_list = []
 
@@ -147,17 +148,19 @@ class LstmNetwork():
         call self.lstm_param.apply_diff()
         """
         assert len(y_list) == len(self.x_list)
+        # assert语句用来声明某个条件是真的 当assert语句失败的时候，会引发一AssertionError
         idx = len(self.x_list) - 1
         # first node only gets diffs from label ...
         loss = loss_layer.loss(self.lstm_node_list[idx].state.h, y_list[idx])
+        # 损失函数
         diff_h = loss_layer.bottom_diff(self.lstm_node_list[idx].state.h, y_list[idx])
         # here s is not affecting loss due to h(t+1), hence we set equal to zero
         diff_s = np.zeros(self.lstm_param.mem_cell_ct)
         self.lstm_node_list[idx].top_diff_is(diff_h, diff_s)
         idx -= 1
 
-        ### ... following nodes also get diffs from next nodes, hence we add diffs to diff_h
-        ### we also propagate error along constant error carousel using diff_s
+        # ... following nodes also get diffs from next nodes, hence we add diffs to diff_h
+        # we also propagate error along constant error carousel using diff_s
         while idx >= 0:
             loss += loss_layer.loss(self.lstm_node_list[idx].state.h, y_list[idx])
             diff_h = loss_layer.bottom_diff(self.lstm_node_list[idx].state.h, y_list[idx])
@@ -176,6 +179,7 @@ class LstmNetwork():
         if len(self.x_list) > len(self.lstm_node_list):
             # need to add new lstm node, create new state mem
             lstm_state = LstmState(self.lstm_param.mem_cell_ct, self.lstm_param.x_dim)
+            # 初始化状态参数
             self.lstm_node_list.append(LstmNode(self.lstm_param, lstm_state))
 
         # get index of most recent x input
@@ -188,3 +192,18 @@ class LstmNetwork():
             h_prev = self.lstm_node_list[idx - 1].state.h
             self.lstm_node_list[idx].bottom_data_is(x, s_prev, h_prev)
 
+
+def sigmoid(x):  # 激活函数
+    return 1. / (1 + np.exp(-x))
+
+
+# createst uniform random array w/ values in [a,b) and shape args
+# 创建均匀分布[a, b]
+# 当函数的参数不确定时，可以使用*args和**kwargs。*args没有key值，**kwargs有key值
+def rand_arr(a, b, *args):
+    np.random.seed(0)
+    return np.random.rand(*args) * (b - a) + a
+
+
+if __name__ == "__main__":
+    pass
