@@ -139,19 +139,20 @@ class send_message_to_wechat(object):
         while True:
             localtime = datetime.datetime.now()    # 获取当前时间
             now = localtime.strftime('%H:%M:%S')
-            try:
-                self.send_message(receiver_class=0)
-                self.send_message(receiver_class=1)
-                self.cache_write()
-                print(now)
-                time.sleep(self.time_interval)
-            except KeyboardInterrupt:
-                self.wechat_push('Python_WeChat 已执行完毕！\n')
-                break
+            self.send_message(receiver_class=0)
+            self.send_message(receiver_class=1)
+            self.cache_write()
+            print(now)
+            time.sleep(self.time_interval)
+            if time.localtime()[3] > 16:
+                self.msg_send_num = self.daily_reset()
+            if 21 > time.localtime()[3] > 16:
+                time.sleep(60)
+            if 9 > time.localtime()[3] > 3:
+                time.sleep(60)
 
 
 if __name__ == '__main__':
-    sw = send_message_to_wechat(
-                                )
+    sw = send_message_to_wechat()
     sw.wechat_login()                              # 扫描二维码并登陆
     sw.remind()                                    # 提醒模式
