@@ -7,6 +7,7 @@ import time
 import json
 import os
 import numpy as np
+from Communication.py2email import send_email
 
 
 class send_message_to_wechat(object):
@@ -16,16 +17,21 @@ class send_message_to_wechat(object):
                  ):
         config = json.load(open(config_file, 'r'))
         self.time_interval = time_interval
-        self.is_test = True
+        self.is_test = config['is_test']
         if self.is_test:
-            self.receiver = ["filehelper"]
+            self.wechat_receiver = [["filehelper"], []]
+            self.email_receiver = [['3285670383@qq.com'], []]
         else:
-            self.receiver = config['receiver']
+            self.wechat_receiver = config['wechat_receiver']
+            self.email_receiver = config['email_receiver']
         self.file_name = list()
         self.file_update_time = list()
         self.msg_send_num = list()
         self.is_change = list()
         self.file_exist = list()
+        self.mesage_summary = ""
+        self.email_title = ""
+        self.send_email = send_email()
 
         for i in range(len(config['file_name'])):
             fn_list = config['file_name'][i]
@@ -47,6 +53,11 @@ class send_message_to_wechat(object):
         print('initial over')
         self.msg_send_num = self.daily_reset()
 
+    def message_add(self, context):
+        if len(self.mesage_summary) == 0:
+            self.email_title = context
+        self.mesage_summary += context + "\n"
+
     def daily_reset(self, reset_file='D:\\Python_Config\\WeChat_Send_reset.json'):
         fp = open(reset_file, 'r')
         reset_config = json.load(fp)
@@ -61,7 +72,7 @@ class send_message_to_wechat(object):
             fp.close()
             for fn_list in self.file_name:                                          # 重置文件
                 for fn in fn_list:
-                    fp = open(fn, 'w')
+                    fp = open(fn_list[fn], 'w')
                     fp.close()
             print('reset over')
         else:
@@ -77,7 +88,7 @@ class send_message_to_wechat(object):
             itchat.auto_login()
             print('微信登陆成功')
 
-    def get_message(self, receiver_class=1):                         # 读取本地文件信息
+    def send_message(self, receiver_class=1):                         # 读取本地文件信息
         self.is_change[receiver_class] = 0                           # 标记是否变动
         for key_name in self.file_name[receiver_class]:
             if not self.file_exist[receiver_class][key_name]:        # 判断文件是否存在
@@ -92,7 +103,9 @@ class send_message_to_wechat(object):
                 for context in contexts[self.msg_send_num[receiver_class][key_name]:]:  # 跳过已经推送的信息
                     self.wechat_push(context, receiver_class)                           # 推送信息
                     self.msg_send_num[receiver_class][key_name] += 1                    # 记录信息条数
+                    self.message_add(context)
                 f.close()
+        self.email_push(receiver_class)
 
     def cache_write(self, reset_file='D:\\Python_Config\\WeChat_Send_reset.json'):
         if sum(self.is_change) > 0:
@@ -109,8 +122,17 @@ class send_message_to_wechat(object):
         if self.is_test:
             print(context)
         else:
-            for receiver in self.receiver[receiver_class]:
+            for receiver in self.wechat_receiver[receiver_class]:
                 itchat.send(context, toUserName=receiver)
+
+    def email_push(self, receiver_class):              # 邮箱信息推送
+        receivers = self.email_receiver[receiver_class]
+        if len(self.mesage_summary) > 0 and len(receivers) > 0:
+            self.send_email.sends(receiver=receivers,
+                                  context=self.mesage_summary,
+                                  title=self.email_title)
+        self.mesage_summary = ""
+        self.email_title = ""
 
     def remind(self):                              # 监控文件变化
         # self.wechat_push('Python_WeChat 已开始执行!')
@@ -118,8 +140,8 @@ class send_message_to_wechat(object):
             localtime = datetime.datetime.now()    # 获取当前时间
             now = localtime.strftime('%H:%M:%S')
             try:
-                self.get_message(receiver_class=0)
-                self.get_message(receiver_class=1)
+                self.send_message(receiver_class=0)
+                self.send_message(receiver_class=1)
                 self.cache_write()
                 print(now)
                 time.sleep(self.time_interval)
