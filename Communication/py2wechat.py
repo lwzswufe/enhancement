@@ -33,8 +33,7 @@ class send_message_to_wechat(object):
         self.email_title = ""
         self.send_email = send_email()
 
-        for i in range(len(config['file_name'])):
-            fn_list = config['file_name'][i]
+        for i, fn_list in enumerate(config['file_name']):
             self.is_change.append(0)
             self.file_name.append(dict())
             self.file_update_time.append(dict())
@@ -66,14 +65,15 @@ class send_message_to_wechat(object):
             next_time = time.time() + 86400 - np.mod(time.time() - 28800, 86400)  # 北京时间下午4点重置
             reset_config['next_reset_time'] = next_time
             reset_config['time_str'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(next_time))
-            reset_config['msg_send_num'] = self.msg_send_num
             fp = open(reset_file, 'w')
             fp.write(json.dumps(reset_config))                                      # 重置文件//写入
             fp.close()
-            for fn_list in self.file_name:                                          # 重置文件
+            for i, fn_list in enumerate(self.file_name):                            # 重置文件
                 for fn in fn_list:
                     fp = open(fn_list[fn], 'w')
                     fp.close()
+                    self.msg_send_num[i][fn] = 0
+            reset_config['msg_send_num'] = self.msg_send_num
             print('reset over')
         else:
             self.msg_send_num = reset_config['msg_send_num']                        # 载入缓存
@@ -144,6 +144,8 @@ class send_message_to_wechat(object):
             self.cache_write()
             print(now)
             time.sleep(self.time_interval)
+            if np.mod(time.localtime()[4], 15) == 0:
+                itchat.send("wechat online", toUserName="filehelper")
             if time.localtime()[3] > 16:
                 self.msg_send_num = self.daily_reset()
             if 21 > time.localtime()[3] > 16:
