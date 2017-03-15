@@ -100,10 +100,13 @@ class send_message_to_wechat(object):
                 f = open(fn, 'r')
                 contexts = f.readlines()
                 self.file_update_time[receiver_class][key_name] = update_time
-                for context in contexts[self.msg_send_num[receiver_class][key_name]:]:  # 跳过已经推送的信息
+                st = self.msg_send_num[receiver_class][key_name]
+                for j, context in enumerate(contexts[st:]):                             # 跳过已经推送的信息
                     self.wechat_push(context, receiver_class)                           # 推送信息
                     self.msg_send_num[receiver_class][key_name] += 1                    # 记录信息条数
                     self.message_add(context)
+                    if (j + 1) % 7 == 0:                                                # 防止信息发送过于频繁
+                        time.sleep(2)
                 f.close()
         self.email_push(receiver_class)
 
