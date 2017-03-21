@@ -15,9 +15,11 @@ class send_message_to_wechat(object):
                  msg_num_file='D:\\Python_Config\\WeChat_msg_num.json',
                  config_file='D:\\Python_Config\\WeChat_Send.json',
                  ):
-        config = json.load(open(config_file, 'r'))
+        config = json.load(open(config_file, 'r', encoding="utf-8"))
         self.time_interval = time_interval
         self.is_test = config['is_test']
+        self.email_title = config['email_title']
+        self.wechat_message_maxlen = config['wechat_message_maxlen']
         if self.is_test:
             self.wechat_receiver = [["filehelper"], []]
             self.email_receiver = [['3285670383@qq.com'], []]
@@ -30,10 +32,8 @@ class send_message_to_wechat(object):
         self.is_change = list()
         self.file_exist = list()
         self.mesage_summary = ""
-        self.email_title = ""
         self.wechat_message_list = list()
         self.send_email = send_email()
-        self.wechat_message_maxlen = 100
 
         for i, fn_list in enumerate(config['file_name']):
             self.is_change.append(0)
@@ -54,16 +54,15 @@ class send_message_to_wechat(object):
         print('initial over')
         self.msg_send_num = self.daily_reset()
 
-    def message_add(self, context):
+    def message_add(self, context):                     # 汇总信息
         if len(self.mesage_summary) == 0:
-            self.email_title = context
-            self.wechat_message_list[0] = ""
-        self.mesage_summary += context + "\n"
+            self.wechat_message_list.append("")
+        self.mesage_summary += context
         flag = len(self.wechat_message_list) - 1
         if len(context) + len(self.wechat_message_list[flag]) < self.wechat_message_maxlen:
             self.wechat_message_list[flag] += context
         else:
-            self.wechat_message_list[flag + 1] = context
+            self.wechat_message_list.append(context)
 
     def daily_reset(self, reset_file='D:\\Python_Config\\WeChat_Send_reset.json'):
         fp = open(reset_file, 'r')
@@ -91,12 +90,13 @@ class send_message_to_wechat(object):
 
     def wechat_login(self):                        # 自动登陆微信
         if self.is_test:
-            print('本地测试开启')
+            print(u'本地测试开启')
+            itchat.auto_login()
         else:
             itchat.auto_login()
-            print('微信登陆成功')
+            print(u'微信登陆成功')
 
-    def send_message(self, receiver_class=1):                         # 读取本地文件信息
+    def send_message(self, receiver_class=1):                      # 读取本地文件信息
         self.is_change[receiver_class] = 0                           # 标记是否变动
         for key_name in self.file_name[receiver_class]:
             if not self.file_exist[receiver_class][key_name]:        # 判断文件是否存在
@@ -110,11 +110,11 @@ class send_message_to_wechat(object):
                 self.file_update_time[receiver_class][key_name] = update_time
                 st = self.msg_send_num[receiver_class][key_name]
                 for context in contexts[st:]:                             # 跳过已经推送的信息
-                    self.msg_send_num[receiver_class][key_name] += 1                    # 记录信息条数
                     self.message_add(context)
+                    self.msg_send_num[receiver_class][key_name] += 1       # 记录信息条数
                 f.close()
 
-        self.wechat_push(receiver_class)                                                # 推送信息
+        self.wechat_push(receiver_class)                                   # 推送信息
         self.email_push(receiver_class)
 
     def cache_write(self, reset_file='D:\\Python_Config\\WeChat_Send_reset.json'):
@@ -125,10 +125,10 @@ class send_message_to_wechat(object):
             fp.close()
 
             fp = open(reset_file, 'w')
-            fp.write(json.dumps(reset_config))                                      # 重置文件//写入
+            fp.write(json.dumps(reset_config))                              # 重置文件//写入
             fp.close()
 
-    def wechat_push(self, receiver_class=1):                    # 微信推送信息
+    def wechat_push(self, receiver_class=1):                              # 微信推送信息
         if self.is_test:
             print(self.wechat_message_list)
         else:
@@ -144,9 +144,8 @@ class send_message_to_wechat(object):
         if len(self.mesage_summary) > 0 and len(receivers) > 0:
             self.send_email.sends(receiver=receivers,
                                   context=self.mesage_summary,
-                                  title=self.email_title)
+                                  title=self.email_title[receiver_class])
         self.mesage_summary = ""
-        self.email_title = ""
 
     def remind(self):                                          # 监控文件变化
         # self.wechat_push('Python_WeChat 已开始执行!')
