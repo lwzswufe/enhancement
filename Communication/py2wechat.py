@@ -31,7 +31,7 @@ class send_message_to_wechat(object):
         self.msg_send_num = list()
         self.is_change = list()
         self.file_exist = list()
-        self.mesage_summary = ""
+        self.message_summary = ""
         self.wechat_message_list = list()
         self.send_email = send_email()
 
@@ -55,9 +55,9 @@ class send_message_to_wechat(object):
         self.msg_send_num = self.daily_reset()
 
     def message_add(self, context):                     # 汇总信息
-        if len(self.mesage_summary) == 0:
+        if len(self.message_summary) == 0:
             self.wechat_message_list.append("")
-        self.mesage_summary += context
+        self.message_summary += context
         flag = len(self.wechat_message_list) - 1
         if len(context) + len(self.wechat_message_list[flag]) < self.wechat_message_maxlen:
             self.wechat_message_list[flag] += context
@@ -141,11 +141,13 @@ class send_message_to_wechat(object):
 
     def email_push(self, receiver_class):                      # 邮箱信息推送
         receivers = self.email_receiver[receiver_class]
-        if len(self.mesage_summary) > 0 and len(receivers) > 0:
+        if len(receivers) == 0:
+            print(self.message_summary)
+        elif len(self.message_summary) > 0 and len(receivers) > 0:
             self.send_email.sends(receiver=receivers,
-                                  context=self.mesage_summary,
+                                  context=self.message_summary,
                                   title=self.email_title[receiver_class])
-        self.mesage_summary = ""
+        self.message_summary = ""
 
     def remind(self):                                          # 监控文件变化
         # self.wechat_push('Python_WeChat 已开始执行!')
