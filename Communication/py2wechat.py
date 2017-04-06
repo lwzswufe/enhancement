@@ -10,6 +10,8 @@ import numpy as np
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import sys
+sys.path.append(r'D:\Code\Code\enhancement')
 from Get_Trade_Day.get_trade_day import next_tradeday
 
 
@@ -75,13 +77,15 @@ class send_message_to_wechat(object):
         fp.close()
         self.next_reset_time = reset_config['next_reset_time']
         if self.next_reset_time < time.time():
-            time_stamp = next_tradeday(time_type='time_stamp')
-            self.next_reset_time = time_stamp + 86400 - np.mod(time_stamp - 28800, 86400)  # 北京时间下午4点重置
+            time_stamp = next_tradeday(time_type='timestamp')
+            self.next_reset_time = time_stamp - np.mod(time_stamp - 28800, 86400)  # 北京时间下午4点重置
             reset_config['next_reset_time'] = self.next_reset_time
             reset_config['time_str'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.next_reset_time))
+
             fp = open(reset_file, 'w')
             fp.write(json.dumps(reset_config))                                      # 重置文件//写入
             fp.close()
+
             for i, fn_list in enumerate(self.file_name):                            # 重置文件
                 for fn in fn_list:
                     fp = open(fn_list[fn], 'w')
