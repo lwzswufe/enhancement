@@ -38,5 +38,24 @@ def today_is_tradeday():
     return is_tradeday(query_date)
 
 
+def next_tradeday(time_type='str'):
+    today = datetime.datetime.today()
+    for i in range(1, 15):
+        query_date = datetime.datetime.strftime(today + datetime.timedelta(i), '%Y%m%d')
+        if is_tradeday(query_date):
+            date = today + datetime.timedelta(i)
+            break
+    if time_type == 'str':
+        return query_date
+    elif time_type == 'timestamp':
+        return date.timestamp()
+    elif time_type == 'date':
+        return date
+    else:
+        return i
+
 if __name__ == '__main__':
     print(is_tradeday('20170406'))
+    print(next_tradeday('num'))
+    print(next_tradeday('timestamp'))
+    print(next_tradeday('date'))

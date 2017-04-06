@@ -7,7 +7,10 @@ import time
 import json
 import os
 import numpy as np
-from Communication.py2email import send_email
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from Get_Trade_Day.get_trade_day import next_tradeday
 
 
 class send_message_to_wechat(object):
@@ -17,6 +20,7 @@ class send_message_to_wechat(object):
                  ):
         config = json.load(open(config_file, 'r', encoding="utf-8"))
         self.time_interval = time_interval
+        self.next_reset_time = 0.0
         self.is_test = config['is_test']
         self.email_title = config['email_title']
         self.wechat_message_maxlen = config['wechat_message_maxlen']
@@ -47,6 +51,7 @@ class send_message_to_wechat(object):
                     self.file_exist[i][key_name] = True
                 else:
                     self.file_exist[i][key_name] = False
+                    print(fn, 'is not exist\n')
                 self.file_name[i][key_name] = fn
                 self.file_update_time[i][key_name] = 0    # 文件修改时间初始化
                 self.msg_send_num[i][key_name] = 0        # 信息发送条数初始化
@@ -68,10 +73,12 @@ class send_message_to_wechat(object):
         fp = open(reset_file, 'r')
         reset_config = json.load(fp)
         fp.close()
-        if reset_config['next_reset_time'] < time.time():
-            next_time = time.time() + 86400 - np.mod(time.time() - 28800, 86400)  # 北京时间下午4点重置
-            reset_config['next_reset_time'] = next_time
-            reset_config['time_str'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(next_time))
+        self.next_reset_time = reset_config['next_reset_time']
+        if self.next_reset_time < time.time():
+            time_stamp = next_tradeday(time_type='time_stamp')
+            self.next_reset_time = time_stamp + 86400 - np.mod(time_stamp - 28800, 86400)  # 北京时间下午4点重置
+            reset_config['next_reset_time'] = self.next_reset_time
+            reset_config['time_str'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.next_reset_time))
             fp = open(reset_file, 'w')
             fp.write(json.dumps(reset_config))                                      # 重置文件//写入
             fp.close()
@@ -156,17 +163,54 @@ class send_message_to_wechat(object):
             now = localtime.strftime('%H:%M:%S')
             self.send_message(receiver_class=0)
             self.send_message(receiver_class=1)
+            self.send_message(receiver_class=2)
+            self.send_message(receiver_class=3)
             self.cache_write()
             print(now)
             time.sleep(self.time_interval)
             if np.mod(time.localtime()[4], 15) == 0:
                 itchat.send("wechat online", toUserName="filehelper")
-            if time.localtime()[3] > 16:
+            if time.time() >= self.next_reset_time:
                 self.msg_send_num = self.daily_reset()
             if 21 > time.localtime()[3] > 16:
                 time.sleep(60)
             if 9 > time.localtime()[3] > 3:
                 time.sleep(60)
+
+
+class send_email(object):
+    def __init__(self, config_file='D:\\Python_Config\\Email_Send.json'):
+        config = json.load(open(config_file, 'r'))
+        self.sender = config['sender']
+        self.smtpserver = config['smtpserver']
+        self.username = config['username']
+        self.password = config['password']
+
+    def sends(self, receiver=["3285670383@qq.com"], title=u"邮箱提示系统",
+             context="Hi!\nHow are you?\nI write this email to python"):
+        for receiver_email in receiver:
+            self.send(receiver_email, title, context)
+
+    def send(self, receiver=["3285670383@qq.com"], title="Im Lwz",
+             context="Hi!\nHow are you?\n"):
+        # Create message container - the correct MIME type is multipart/alternative.
+        if len(receiver) > 1:
+            msg = MIMEMultipart('multipart')
+        else:
+            msg = MIMEMultipart('alternative')
+            receiver = receiver[0]
+        msg['Subject'] = title
+        msg.attach(MIMEText(context, 'plain'))
+        # Create the body of the message (a plain-text and an HTML version).
+        msg['from'] = self.sender
+        msg['to'] = receiver
+
+        smtp = smtplib.SMTP()
+        smtp.connect('smtp.163.com')
+        smtp.login(self.username, self.password)
+        smtp.sendmail(self.sender, receiver, msg.as_string())
+        smtp.quit()
+        print('email send to ', receiver, 'successful')
 
 
 if __name__ == '__main__':
