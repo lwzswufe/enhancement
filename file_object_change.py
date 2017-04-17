@@ -33,4 +33,6 @@ def write_file(filename, content, encode="gbk"):
 
 
 if __name__ == '__main__':
-    object_change()
+    object_change(old_name="[Day, Time, Open, High, Low, Close, Vol, status] = CycleChange_v3(bars, original_barsize,  InitialSet.barsize);",
+                  new_name="[Day, Time, Open, High, Low, Close, Vol, status] = CycleChange_v3(bars, InitialSet.original_barsize,  InitialSet.barsize);",
+                  file_path="D:\\Code\\Code\\MATLABCode\\strategy")
