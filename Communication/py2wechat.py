@@ -17,7 +17,7 @@ from Get_Trade_Day.get_trade_day import next_tradeday
 
 class send_message_to_wechat(object):
     def __init__(self, time_interval=2.9,
-                 msg_num_file='D:\\Python_Config\\WeChat_msg_num.json',
+                 reset_file='D:\\Python_Config\\WeChat_Send_reset.json',
                  config_file='D:\\Python_Config\\WeChat_Send.json',
                  ):
         config = json.load(open(config_file, 'r', encoding="utf-8"))
@@ -26,6 +26,8 @@ class send_message_to_wechat(object):
         self.is_test = config['is_test']
         self.email_title = config['email_title']
         self.wechat_message_maxlen = config['wechat_message_maxlen']
+        self.wechat_file_receiver = config['wechat_file_receiver']
+        self.send_file_name = config['send_file_name']
         if self.is_test:
             self.wechat_receiver = [["filehelper"], []]
             self.email_receiver = [['3285670383@qq.com'], []]
@@ -35,14 +37,15 @@ class send_message_to_wechat(object):
         self.file_name = list()
         self.file_update_time = list()
         self.msg_send_num = list()
-        self.is_change = list()
+        self.is_change = False
         self.file_exist = list()
         self.message_summary = ""
         self.wechat_message_list = list()
         self.send_email = send_email()
+        self.is_send_file = bool()
+        self.reset_file_name = reset_file
 
         for i, fn_list in enumerate(config['file_name']):
-            self.is_change.append(0)
             self.file_name.append(dict())
             self.file_update_time.append(dict())
             self.file_exist.append(dict())
@@ -72,17 +75,18 @@ class send_message_to_wechat(object):
             self.wechat_message_list.append(context)
 
     def daily_reset(self, reset_file='D:\\Python_Config\\WeChat_Send_reset.json'):
-        fp = open(reset_file, 'r')
+        fp = open(self.reset_file_name, 'r')
         reset_config = json.load(fp)
         fp.close()
         self.next_reset_time = reset_config['next_reset_time']
+        self.is_send_file = reset_config['is_send_file']
         if self.next_reset_time < time.time():
             time_stamp = next_tradeday(time_type='timestamp')
             self.next_reset_time = time_stamp - np.mod(time_stamp - 28800, 86400)  # 北京时间下午4点重置
             reset_config['next_reset_time'] = self.next_reset_time
             reset_config['time_str'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.next_reset_time))
 
-            fp = open(reset_file, 'w')
+            fp = open(self.reset_file_name, 'w')
             fp.write(json.dumps(reset_config))                                      # 重置文件//写入
             fp.close()
 
@@ -91,6 +95,7 @@ class send_message_to_wechat(object):
                     fp = open(fn_list[fn], 'w')
                     fp.close()
                     self.msg_send_num[i][fn] = 0
+            self.is_send_file = False
             reset_config['msg_send_num'] = self.msg_send_num
             print('reset over')
         else:
@@ -108,14 +113,13 @@ class send_message_to_wechat(object):
             print(u'微信登陆成功')
 
     def send_message(self, receiver_class=1):                      # 读取本地文件信息
-        self.is_change[receiver_class] = 0                           # 标记是否变动
         for key_name in self.file_name[receiver_class]:
             if not self.file_exist[receiver_class][key_name]:        # 判断文件是否存在
                 continue
             fn = self.file_name[receiver_class][key_name]
             update_time = os.stat(fn).st_mtime
             if self.file_update_time[receiver_class][key_name] < update_time:
-                self.is_change[receiver_class] = 1
+                self.is_change = True
                 f = open(fn, 'r')
                 contexts = f.readlines()
                 self.file_update_time[receiver_class][key_name] = update_time
@@ -129,15 +133,17 @@ class send_message_to_wechat(object):
         self.email_push(receiver_class)
 
     def cache_write(self, reset_file='D:\\Python_Config\\WeChat_Send_reset.json'):
-        if sum(self.is_change) > 0:
-            fp = open(reset_file, 'r')
+        if self.is_change:
+            fp = open(self.reset_file_name, 'r')
             reset_config = json.load(fp)
             reset_config['msg_send_num'] = self.msg_send_num
+            reset_config['is_send_file'] = self.is_send_file
             fp.close()
 
-            fp = open(reset_file, 'w')
+            fp = open(self.reset_file_name, 'w')
             fp.write(json.dumps(reset_config))                              # 重置文件//写入
             fp.close()
+            self.is_change = False
 
     def wechat_push(self, receiver_class=1):                              # 微信推送信息
         if self.is_test:
@@ -160,6 +166,33 @@ class send_message_to_wechat(object):
                                   title=self.email_title[receiver_class])
         self.message_summary = ""
 
+    def send_wechat_file(self):
+        clock = time.localtime()
+        if clock[3] * 100 + clock[4] < 1510 or self.is_send_file or clock[3] * 100 + clock[4] > 1559:
+            return
+        message = time.strftime("%Y-%m-%d", time.localtime(self.next_reset_time))
+        message += ' 今日缠论交易信号\n'
+        file_list = list()
+        for key_name in self.send_file_name.keys():
+            fn = self.send_file_name[key_name]
+            if not os.path.exists(fn):        # 判断文件是否存在
+                message += key_name + ' not exist\n'
+            elif os.path.getsize(fn) == 0:
+                message += key_name + ' is empty\n'
+            else:
+                file_list.append(fn)
+                message += key_name + ' have trading signals'
+
+        itchat.send(message, toUserName='filehelper')
+        for receiver in self.wechat_file_receiver:
+            itchat.send(message, toUserName=receiver)
+            for fn in file_list:
+                itchat.send_file(fn, toUserName=receiver)
+        self.is_send_file = True
+        self.is_change = True
+        print(message)
+        print('send file over')
+
     def remind(self):                                          # 监控文件变化
         # self.wechat_push('Python_WeChat 已开始执行!')
         while True:
@@ -169,6 +202,7 @@ class send_message_to_wechat(object):
             self.send_message(receiver_class=1)
             self.send_message(receiver_class=2)
             self.send_message(receiver_class=3)
+            self.send_wechat_file()
             self.cache_write()
             print(now)
             time.sleep(self.time_interval)
@@ -176,9 +210,9 @@ class send_message_to_wechat(object):
                 itchat.send("wechat online", toUserName="filehelper")
             if time.time() >= self.next_reset_time:
                 self.msg_send_num = self.daily_reset()
-            if 21 > time.localtime()[3] > 16:
+            if time.localtime()[3] > 16:
                 time.sleep(60)
-            if 9 > time.localtime()[3] > 3:
+            if 9 > time.localtime()[3]:
                 time.sleep(60)
 
 
@@ -218,6 +252,6 @@ class send_email(object):
 
 
 if __name__ == '__main__':
-    sw = send_message_to_wechat()
+    sw = send_message_to_wechat(reset_file='D:\\Python_Config\\WeChat_Send_reset.json')
     sw.wechat_login()                              # 扫描二维码并登陆
     sw.remind()                                    # 提醒模式
