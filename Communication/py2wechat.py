@@ -10,6 +10,7 @@ import numpy as np
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import shutil
 import sys
 sys.path.append(r'D:\Code\Code\enhancement')
 from Get_Trade_Day.get_trade_day import next_tradeday
@@ -74,7 +75,7 @@ class send_message_to_wechat(object):
         else:
             self.wechat_message_list.append(context)
 
-    def daily_reset(self, reset_file='D:\\Python_Config\\WeChat_Send_reset.json'):
+    def daily_reset(self):
         fp = open(self.reset_file_name, 'r')
         reset_config = json.load(fp)
         fp.close()
@@ -132,7 +133,7 @@ class send_message_to_wechat(object):
         self.wechat_push(receiver_class)                                   # 推送信息
         self.email_push(receiver_class)
 
-    def cache_write(self, reset_file='D:\\Python_Config\\WeChat_Send_reset.json'):
+    def cache_write(self):
         if self.is_change:
             fp = open(self.reset_file_name, 'r')
             reset_config = json.load(fp)
@@ -168,7 +169,7 @@ class send_message_to_wechat(object):
 
     def send_wechat_file(self):
         clock = time.localtime()
-        if clock[3] * 100 + clock[4] < 1510 or self.is_send_file or clock[3] * 100 + clock[4] > 1559:
+        if clock[3] * 100 + clock[4] < 1123 or self.is_send_file or clock[3] * 100 + clock[4] > 1559:
             return
         message = time.strftime("%Y-%m-%d", time.localtime(self.next_reset_time))
         message += ' 今日缠论交易信号\n'
@@ -180,7 +181,8 @@ class send_message_to_wechat(object):
             elif os.path.getsize(fn) == 0:
                 message += key_name + ' is empty\n'
             else:
-                file_list.append(fn)
+                new_filename = create_file(fn)
+                file_list.append(new_filename)
                 message += key_name + ' have trading signals'
 
         itchat.send(message, toUserName='filehelper')
@@ -251,7 +253,22 @@ class send_email(object):
         print('email send to ', receiver, 'successful')
 
 
+def create_file(filename='buy.txt', address='D:\\Share\\Trade\\macd_v2_log\\'):
+    if filename.find('buy') >= 0:
+        buyorsell = 'buy'
+    elif filename.find('sell') >= 0:
+        buyorsell = 'sell'
+    else:
+        print('file name error')
+        return filename
+    localtime = datetime.datetime.now()
+    new_filename = address + localtime.strftime('%y%m%d_%H%M%S_') + buyorsell + '.txt'
+    shutil.copyfile(filename, new_filename)
+    return new_filename
+
+
 if __name__ == '__main__':
-    sw = send_message_to_wechat(reset_file='D:\\Python_Config\\WeChat_Send_reset.json')
+    sw = send_message_to_wechat(reset_file='D:\\Python_Config\\WeChat_Send_reset.json',
+                                config_file='D:\\Python_Config\\WeChat_Send.json')
     sw.wechat_login()                              # 扫描二维码并登陆
     sw.remind()                                    # 提醒模式
