@@ -8,12 +8,15 @@ import json
 import os
 import numpy as np
 import smtplib
+from itchat.content import *
+import threading
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import shutil
 import sys
 sys.path.append(r'D:\Code\Code\enhancement')
 from Get_Trade_Day.get_trade_day import next_tradeday
+import Communication.wechat_reply as wechat_reply
 
 
 class send_message_to_wechat(object):
@@ -64,6 +67,14 @@ class send_message_to_wechat(object):
 
         print('initial over')
         self.msg_send_num = self.daily_reset()
+
+        @itchat.msg_register(isGroupChat=False, msgType=TEXT)  # 个人私信
+        def group_text_reply(msg):
+            return wechat_reply.reply_signal(msg, wechat_class=self)
+
+        @itchat.msg_register(isGroupChat=True, msgType=TEXT)   # 微信群
+        def group_text_reply(msg):
+            return wechat_reply.reply_group(msg, wechat_class=self)
 
     def message_add(self, context):                     # 汇总信息
         if len(self.message_summary) == 0:
@@ -167,9 +178,11 @@ class send_message_to_wechat(object):
                                   title=self.email_title[receiver_class])
         self.message_summary = ""
 
-    def send_wechat_file(self):
+    def send_wechat_file(self, mandatory_order=False):
         clock = time.localtime()
-        if clock[3] * 100 + clock[4] < 1123 or self.is_send_file or clock[3] * 100 + clock[4] > 1559:
+        if mandatory_order:
+            pass
+        elif clock[3] * 100 + clock[4] < 1123 or self.is_send_file or clock[3] * 100 + clock[4] > 1559:
             return
         message = time.strftime("%Y-%m-%d", time.localtime(self.next_reset_time))
         message += ' 今日缠论交易信号\n'
@@ -271,4 +284,8 @@ if __name__ == '__main__':
     sw = send_message_to_wechat(reset_file='D:\\Python_Config\\WeChat_Send_reset.json',
                                 config_file='D:\\Python_Config\\WeChat_Send.json')
     sw.wechat_login()                              # 扫描二维码并登陆
-    sw.remind()                                    # 提醒模式
+    th_1 = threading.Thread(target=itchat.run)
+    th_2 = threading.Thread(target=sw.remind)
+    th_1.start()
+    th_2.start()
+    print('start over')                                    # 提醒模式
