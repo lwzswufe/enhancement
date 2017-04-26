@@ -3,54 +3,13 @@
 # !/usr/bin/env python3
 import pandas as pd
 import pickle
+import sys
+sys.path.append(r'D:\Code\Code\PythonCode')
+import stockdownloads.trade_signal as trade_signal
 
 
-class trade_list(object):
-    def __init__(self, fname='test'):
-        self.code = list()
-        self.time = list()
-        self.price = list()
-        self.name = list()
-        self.context = list()
-        self.textname = fname
-
-    def append(self, code, name, time_str, price, repet=False, buyorsell='买入'):
-        if repet or code not in self.code:
-            self.code.append(code)
-            self.name.append(name)
-            self.time.append(time_str)
-            self.price.append(price)
-            context = buyorsell + ' ' + code + ' ' + name + ' 价格 ' +\
-                      str(price) + '\n'
-            self.context.append(context)
-
-    def write(self):
-        PC = file_address()
-        fname = PC + self.textname
-        if len(self.context) > 0:
-            f = open(fname, 'w')
-            line = '时间 ' + self.time[-1] + '\n'
-            f.write(line)
-            for line in self.context:
-                f.write(line)
-                print(line)
-            f.close()
-
-    def get_data(self):
-        write_df = pd.DataFrame({'code': self.code, 'name': self.name,
-                                 'time': self.time, 'price': self.price})
-        return write_df
-
-    def update(self, code, name=False, time=False, price=False):
-        if code not in self.code:
-            return
-        i = self.code.index(code)
-        if time:
-            self.time[i] = time
-        if price:
-            self.price[i] = price
-        if name:
-            self.name[i] = name
+class trade_list(trade_signal.trade_list):
+    pass
 
 
 def file_address():

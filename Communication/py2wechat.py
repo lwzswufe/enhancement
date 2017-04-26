@@ -17,6 +17,12 @@ import sys
 sys.path.append(r'D:\Code\Code\enhancement')
 from Get_Trade_Day.get_trade_day import next_tradeday
 import Communication.wechat_reply as wechat_reply
+sys.path.append(r'D:\Code\Code\PythonCode')
+import stockdownloads.trade_signal as trade_signal
+
+
+class trade_list(trade_signal.trade_list):
+    pass
 
 
 class send_message_to_wechat(object):
