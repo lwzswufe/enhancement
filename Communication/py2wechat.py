@@ -35,15 +35,18 @@ class send_message_to_wechat(object):
         self.next_reset_time = 0.0
         self.is_test = config['is_test']
         self.email_title = config['email_title']
-        self.wechat_message_maxlen = config['wechat_message_maxlen']
-        self.wechat_file_receiver = config['wechat_file_receiver']
+        self.wechat_one_message_maxlen = config['wechat_one_message_maxlen']
+        self.wechat_total_message_maxlen = config['wechat_total_message_maxlen']
         self.send_file_name = config['send_file_name']
+
+        self.wechat_receiver = config['wechat_receiver']
+        self.email_receiver = config['email_receiver']
+        self.wechat_file_receiver = config['wechat_file_receiver']
         if self.is_test:
-            self.wechat_receiver = [["filehelper"], []]
-            self.email_receiver = [['3285670383@qq.com'], []]
-        else:
-            self.wechat_receiver = config['wechat_receiver']
-            self.email_receiver = config['email_receiver']
+            for i in range(len(self.wechat_receiver)):
+                self.wechat_receiver[i] = ["filehelper"]
+                self.email_receiver[i] = ['3285670383@qq.com']
+
         self.file_name = list()
         self.file_update_time = list()
         self.msg_send_num = list()
@@ -87,7 +90,7 @@ class send_message_to_wechat(object):
             self.wechat_message_list.append("")
         self.message_summary += context
         flag = len(self.wechat_message_list) - 1
-        if len(context) + len(self.wechat_message_list[flag]) < self.wechat_message_maxlen:
+        if len(context) + len(self.wechat_message_list[flag]) < self.wechat_one_message_maxlen:
             self.wechat_message_list[flag] += context
         else:
             self.wechat_message_list.append(context)
@@ -142,9 +145,18 @@ class send_message_to_wechat(object):
                 contexts = f.readlines()
                 self.file_update_time[receiver_class][key_name] = update_time
                 st = self.msg_send_num[receiver_class][key_name]
-                for context in contexts[st:]:                             # 跳过已经推送的信息
+                count = self.count_message_length(contexts[st:])
+                if count == 0:
+                    pass
+                elif count > self.wechat_total_message_maxlen:
+                    self.msg_send_num[receiver_class][key_name] = len(contexts)
+                    context = '今日交易信息过多，请回复 ' + key_name + ' 获取完整交易信号，或者回复 ' +\
+                              key_name[0] + 'xxxxxx 查询单只股票交易信息'
                     self.message_add(context)
-                    self.msg_send_num[receiver_class][key_name] += 1       # 记录信息条数
+                else:
+                    for context in contexts[st:]:                             # 跳过已经推送的信息
+                        self.message_add(context)
+                        self.msg_send_num[receiver_class][key_name] += 1       # 记录信息条数
                 f.close()
 
         self.wechat_push(receiver_class)                                   # 推送信息
@@ -174,6 +186,12 @@ class send_message_to_wechat(object):
 
         self.wechat_message_list = list()
 
+    def count_message_length(self, contexts):
+        count_len = 0
+        for context in contexts:
+            count_len += len(context)
+        return count_len
+
     def email_push(self, receiver_class):                      # 邮箱信息推送
         receivers = self.email_receiver[receiver_class]
         if len(receivers) == 0:
@@ -183,6 +201,10 @@ class send_message_to_wechat(object):
                                   context=self.message_summary,
                                   title=self.email_title[receiver_class])
         self.message_summary = ""
+
+    def wechat_file_push(self, file_path, receiver):
+        if os.path.exists(file_path):
+            itchat.send_file(file_path, toUserName=receiver)
 
     def send_wechat_file(self, mandatory_order=False):
         clock = time.localtime()

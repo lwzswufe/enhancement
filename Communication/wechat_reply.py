@@ -4,8 +4,11 @@
 import pandas as pd
 import pickle
 import sys
+import shutil
+import os
 sys.path.append(r'D:\Code\Code\PythonCode')
 import stockdownloads.trade_signal as trade_signal
+import itchat
 
 
 class trade_list(trade_signal.trade_list):
@@ -20,26 +23,42 @@ def file_address():
 def reply_signal(msg=dict, wechat_class=None):
     try:
         context = msg['Text']
+        # fromUserName = msg['FromUserName']
+        return reply(context, wechat_class)
+    except TypeError:
+        print(msg)
+
+
+def reply(context=str, wechat_class=None):
+    if context == 'help':
+        text = '请输入信息与我开始互动(若在群聊中清以#开头)\n查询股票持仓：\n' +\
+               '超短线 sxxxxxx \n小时线 hxxxxxx \n日线 dxxxxxx\n' +\
+               '查询今日股票信号：\n' +\
+               '超短线买入 sbuy\n 超短线卖出 ssell\n' +\
+               '小时线买入 hbuy\n 小时线卖出 hsell\n' +\
+               '日线买入 dbuy\n 日线卖出 dsell\n'
+        return text
+    elif context[1:].isdigit():
+        return qurry_position(context)
+    elif context == 'sendfile':
+        wechat_class.send_wechat_file(mandatory_order=True)
+    elif context[1:] == 'buy' or context[1:] == 'sell':
+        text = send_file(context)
+        return text
+    return ''
+
+
+def reply_group(msg=dict, wechat_class=None):
+    try:
+        context = msg['Text']
+        # fromUserName = msg['FromUserName']
     except TypeError:
         print(msg)
     if context[0] != '#':
         return ''
     else:
         context = context[1:]
-
-    if context == 'help':
-        text = '请输入#开头的信息与我开始互动\n查询股票持仓：\n' +\
-               '\n超短线#sxxxxxx \n小时线#hxxxxxx \n日线#dxxxxxx'
-        return text
-    elif context[1:].isdigit():
-        return qurry_position(context)
-    elif context == 'sendfile':
-        wechat_class.send_wechat_file(mandatory_order=True)
-    return ''
-
-
-def reply_group(msg=dict, wechat_class=None):
-    return reply_signal(msg, wechat_class)
+    return reply(context, wechat_class)
 
 
 def qurry_position(code=str, position_file='\\\\SWFUTURES-PC\\Share\\Trade\\macd_v2_position.csv',
@@ -91,10 +110,46 @@ def qurry_position(code=str, position_file='\\\\SWFUTURES-PC\\Share\\Trade\\macd
     return context
 
 
+def send_file(command=str, address='D:\\Share\\Trade\\'):
+    if len(command) == 4:
+        buyorsell = 'buylist'
+        new_filename = 'buy'
+    else:
+        buyorsell = 'selllist'
+        new_filename = 'sell'
+    if command[0] == 'd':
+        file_name = address + buyorsell + '_macd_240.txt'
+    elif command[0] == 'h':
+        file_name = address + buyorsell + '_macd_60.txt'
+    elif command[0] == 's':
+        file_name = address + buyorsell + '_macd_v2.txt'
+    if not os.path.exists(file_name):        # 判断文件是否存在
+        message = '今日暂无信号'
+        return message
+    elif os.path.getsize(file_name) == 0:
+        message = '今日暂无信号'
+        return message
+    else:
+        new_filepath = '@fil@' + create_file(new_filename, file_name)
+        print(new_filepath)
+        return new_filepath
+
+
+def create_file(filename='buy.txt', old_filepath='D:\\Share\\Trade\\macd_240_position.csv'):
+    site = old_filepath.rfind('\\')
+    file_path = old_filepath[:site+1]
+    new_filepath = file_path + filename + '.txt'
+    shutil.copyfile(old_filepath, new_filepath)
+    return new_filepath
+
+
 if __name__ == '__main__':
-    text = reply_signal(msg={'Type': 'Text', 'Text': '#h600010'})
+    text = reply_signal(msg={'Type': 'Text', 'Text': '#h600010', 'FromUserName': '00'})
     print(text)
-    text = reply_signal(msg={'Type': 'Text', 'Text': '#d600128'})
+    text = reply_signal(msg={'Type': 'Text', 'Text': '#d600128', 'FromUserName': '00'})
     print(text)
-    text = reply_signal(msg={'Type': 'Text', 'Text': '#s600037'})
+    text = reply_signal(msg={'Type': 'Text', 'Text': '#s600037', 'FromUserName': '00'})
     print(text)
+    text = reply_signal(msg={'Type': 'Text', 'Text': '#s_sell', 'FromUserName': '00'})
+    print(text)
+
