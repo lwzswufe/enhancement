@@ -23,29 +23,11 @@ def file_address():
 def reply_signal(msg=dict, wechat_class=None):
     try:
         context = msg['Text']
-        # fromUserName = msg['FromUserName']
-        return reply(context, wechat_class)
+        texts = reply(context, wechat_class)
+        if len(texts) > 0:
+            return texts
     except TypeError:
         print(msg)
-
-
-def reply(context=str, wechat_class=None):
-    if context == 'help':
-        text = '请输入信息与我开始互动(若在群聊中清以#开头)\n查询股票持仓：\n' +\
-               '超短线 sxxxxxx \n小时线 hxxxxxx \n日线 dxxxxxx\n' +\
-               '查询今日股票信号：\n' +\
-               '超短线买入 sbuy\n 超短线卖出 ssell\n' +\
-               '小时线买入 hbuy\n 小时线卖出 hsell\n' +\
-               '日线买入 dbuy\n 日线卖出 dsell\n'
-        return text
-    elif context[1:].isdigit():
-        return qurry_position(context)
-    elif context == 'sendfile':
-        wechat_class.send_wechat_file(mandatory_order=True)
-    elif context[1:] == 'buy' or context[1:] == 'sell':
-        text = send_file(context)
-        return text
-    return ''
 
 
 def reply_group(msg=dict, wechat_class=None):
@@ -54,11 +36,32 @@ def reply_group(msg=dict, wechat_class=None):
         # fromUserName = msg['FromUserName']
     except TypeError:
         print(msg)
-    if context[0] != '#':
-        return ''
+    if context[0] == '#':
+        texts = reply(context[1:], wechat_class)
+        if len(texts) > 0:
+            return texts
+
+
+def reply(context=str, wechat_class=None):
+    if context == 'help' or context == '帮助':
+        texts = '请输入信息与我开始互动(若在群聊中清以#开头)\n查询股票持仓：\n' +\
+                '超短线 sxxxxxx \n小时线 hxxxxxx \n日线 dxxxxxx\n' +\
+                '查询今日股票信号：\n' +\
+                '超短线买入 sbuy\n超短线卖出 ssell\n' +\
+                '小时线买入 hbuy\n小时线卖出 hsell\n' +\
+                '日线买入   dbuy\n日线卖出   dsell\n'
+    elif context[1:].isdigit():
+        texts = qurry_position(context)
+    elif context == 'sendfile':
+        wechat_class.send_wechat_file(mandatory_order=True)
+        texts = ''
+    elif context[1:] == 'buy' or context[1:] == 'sell':
+        texts = send_file(context)
+    elif context == '套利' or context == 'fast_query':
+        texts = wechat_class.future_query.fast_query()
     else:
-        context = context[1:]
-    return reply(context, wechat_class)
+        texts = wechat_class.future_query.query_by_text(context)
+    return texts
 
 
 def qurry_position(code=str, position_file='\\\\SWFUTURES-PC\\Share\\Trade\\macd_v2_position.csv',
@@ -131,7 +134,6 @@ def send_file(command=str, address='D:\\Share\\Trade\\'):
         return message
     else:
         new_filepath = '@fil@' + create_file(new_filename, file_name)
-        print(new_filepath)
         return new_filepath
 
 
@@ -144,12 +146,14 @@ def create_file(filename='buy.txt', old_filepath='D:\\Share\\Trade\\macd_240_pos
 
 
 if __name__ == '__main__':
-    text = reply_signal(msg={'Type': 'Text', 'Text': '#h600010', 'FromUserName': '00'})
+    text = reply_signal(msg={'Type': 'Text', 'Text': 'h600010'})
     print(text)
-    text = reply_signal(msg={'Type': 'Text', 'Text': '#d600128', 'FromUserName': '00'})
+    text = reply_signal(msg={'Type': 'Text', 'Text': 'd600128'})
     print(text)
-    text = reply_signal(msg={'Type': 'Text', 'Text': '#s600037', 'FromUserName': '00'})
+    text = reply_signal(msg={'Type': 'Text', 'Text': 's600037'})
     print(text)
-    text = reply_signal(msg={'Type': 'Text', 'Text': '#s_sell', 'FromUserName': '00'})
+    text = reply_signal(msg={'Type': 'Text', 'Text': 'ssell'})
+    print(text)
+    text = reply_signal(msg={'Type': 'Text', 'Text': 'help'})
     print(text)
 

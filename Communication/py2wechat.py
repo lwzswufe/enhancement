@@ -19,6 +19,7 @@ from Get_Trade_Day.get_trade_day import next_tradeday
 import Communication.wechat_reply as wechat_reply
 sys.path.append(r'D:\Code\Code\PythonCode')
 import stockdownloads.trade_signal as trade_signal
+import Trade_on_wind.Future_Spread as Future_Spread
 
 
 class trade_list(trade_signal.trade_list):
@@ -31,6 +32,9 @@ class send_message_to_wechat(object):
                  config_file='D:\\Python_Config\\WeChat_Send.json',
                  ):
         config = json.load(open(config_file, 'r', encoding="utf-8"))
+        self.wechat_push_permission = False
+        if not self.wechat_push_permission:
+            print('wechat push closed')
         self.time_interval = time_interval
         self.next_reset_time = 0.0
         self.is_test = config['is_test']
@@ -76,6 +80,7 @@ class send_message_to_wechat(object):
 
         print('initial over')
         self.msg_send_num = self.daily_reset()
+        self.future_query = Future_Spread.Spread()
 
         @itchat.msg_register(isGroupChat=False, msgType=TEXT)  # 个人私信
         def group_text_reply(msg):
@@ -241,12 +246,13 @@ class send_message_to_wechat(object):
         while True:
             localtime = datetime.datetime.now()                # 获取当前时间
             now = localtime.strftime('%H:%M:%S')
-            self.send_message(receiver_class=0)
-            self.send_message(receiver_class=1)
-            self.send_message(receiver_class=2)
-            self.send_message(receiver_class=3)
-            self.send_wechat_file()
-            self.cache_write()
+            if self.wechat_push_permission:
+                self.send_message(receiver_class=0)
+                self.send_message(receiver_class=1)
+                self.send_message(receiver_class=2)
+                self.send_message(receiver_class=3)
+                self.send_wechat_file()
+                self.cache_write()
             print(now)
             time.sleep(self.time_interval)
             if np.mod(time.localtime()[4], 15) == 0:
