@@ -50,6 +50,14 @@ def reply(context=str, wechat_class=None):
                 '超短线买入 sbuy\n超短线卖出 ssell\n' +\
                 '小时线买入 hbuy\n小时线卖出 hsell\n' +\
                 '日线买入   dbuy\n日线卖出   dsell\n'
+    elif context == 'fhelp' or context == '期货':
+        texts = '请输入信息与我开始互动(若在群聊中清以#开头)\n查询期货跨月套利：\n' +\
+                'f + 期货代码\n 如：fif\n 查询股指期货IF跨月价差' +\
+                '查询跨品种套利：' +\
+                'f + 期货代码1 + 空格 + 期货代码2\n' +\
+                '如：fcs c\n 查询 cs - c 价差' +\
+                'f + 期货代码1 + 空格 + 权重2 + 空格 + 期货代码2\n' +\
+                '如：fcs 1.2 c 查询 cs - 1.2c 价差\n'
     elif context[1:].isdigit():
         texts = qurry_position(context)
     elif context == 'sendfile':
@@ -59,8 +67,17 @@ def reply(context=str, wechat_class=None):
         texts = send_file(context)
     elif context == '套利' or context == 'fast_query':
         texts = wechat_class.future_query.fast_query()
+    elif context[:4] == 'wind':
+        if context == 'wind':
+            texts = wechat_class.future_query.get_wind_status()
+        elif context == 'wind start':
+            texts = wechat_class.future_query.re_start()
+        elif context == 'wind close':
+            texts = wechat_class.future_query.temp_close()
+    elif context[0] == 'f' and len(context) > 1:
+        texts = wechat_class.future_query.query_by_text(context[1:])
     else:
-        texts = wechat_class.future_query.query_by_text(context)
+        texts = ''
     return texts
 
 

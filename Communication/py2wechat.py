@@ -27,12 +27,12 @@ class trade_list(trade_signal.trade_list):
 
 
 class send_message_to_wechat(object):
-    def __init__(self, time_interval=2.9,
+    def __init__(self, time_interval=3,
                  reset_file='D:\\Python_Config\\WeChat_Send_reset.json',
                  config_file='D:\\Python_Config\\WeChat_Send.json',
                  ):
         config = json.load(open(config_file, 'r', encoding="utf-8"))
-        self.wechat_push_permission = False
+        self.wechat_push_permission = config['wechat_push_permission']
         if not self.wechat_push_permission:
             print('wechat push closed')
         self.time_interval = time_interval
@@ -186,7 +186,10 @@ class send_message_to_wechat(object):
         else:
             for i, context in enumerate(self.wechat_message_list):
                 for receiver in self.wechat_receiver[receiver_class]:
-                    itchat.send(context, toUserName=receiver)
+                    ReturnValue = itchat.send(context, toUserName=receiver)
+                    if len(ReturnValue['MsgID']) == 0:
+                        print('请求失败')
+                        print(ReturnValue['BaseResponse'])
                 time.sleep(2)
 
         self.wechat_message_list = list()
@@ -253,6 +256,7 @@ class send_message_to_wechat(object):
                 self.send_message(receiver_class=3)
                 self.send_wechat_file()
                 self.cache_write()
+            self.future_query.temp_close()
             print(now)
             time.sleep(self.time_interval)
             if np.mod(time.localtime()[4], 15) == 0:
