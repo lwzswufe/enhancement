@@ -48,8 +48,8 @@ class send_message_to_wechat(object):
         self.wechat_file_receiver = config['wechat_file_receiver']
         if self.is_test:
             for i in range(len(self.wechat_receiver)):
-                self.wechat_receiver[i] = ["filehelper"]
-                self.email_receiver[i] = ['3285670383@qq.com']
+                self.wechat_receiver[i] = ["lwzswufe", "scarlett_cqr"]
+                self.email_receiver[i] = []
 
         self.file_name = list()
         self.file_update_time = list()
@@ -61,6 +61,7 @@ class send_message_to_wechat(object):
         self.send_email = send_email()
         self.is_send_file = bool()
         self.reset_file_name = reset_file
+        self.wechat_id = dict()
 
         for i, fn_list in enumerate(config['file_name']):
             self.file_name.append(dict())
@@ -89,6 +90,25 @@ class send_message_to_wechat(object):
         @itchat.msg_register(isGroupChat=True, msgType=TEXT)   # 微信群
         def group_text_reply(msg):
             return wechat_reply.reply_group(msg, wechat_class=self)
+
+    def get_wechat_userid(self):
+        user_card_list = itchat.get_friends()
+        remark_name = list()
+        user_id = list()
+        for visit_card in user_card_list:
+            remark_name.append(visit_card['RemarkName'])
+            user_id.append(visit_card['UserName'])
+        self.wechat_id = dict(zip(remark_name, user_id))
+
+        user_name_set = set()
+        for receivers in self.wechat_receiver:
+            for user_name in receivers:
+                if user_name not in user_name_set:
+                    user_name_set.add(user_name)
+
+        for user_name in user_name_set:
+            if user_name not in remark_name:
+                print("can not find a friend named ", user_name)
 
     def message_add(self, context):                     # 汇总信息
         if len(self.message_summary) == 0:
@@ -134,9 +154,11 @@ class send_message_to_wechat(object):
         if self.is_test:
             print(u'本地测试开启')
             itchat.auto_login()
+            self.get_wechat_userid()
         else:
             itchat.auto_login()
             print(u'微信登陆成功')
+            self.get_wechat_userid()
 
     def send_message(self, receiver_class=1):                      # 读取本地文件信息
         for key_name in self.file_name[receiver_class]:
@@ -181,12 +203,13 @@ class send_message_to_wechat(object):
             self.is_change = False
 
     def wechat_push(self, receiver_class=1):                              # 微信推送信息
-        if self.is_test:
+        if not self.wechat_push_permission:
             print(self.wechat_message_list)
         else:
             for i, context in enumerate(self.wechat_message_list):
                 for receiver in self.wechat_receiver[receiver_class]:
-                    ReturnValue = itchat.send(context, toUserName=receiver)
+                    user_id = self.wechat_id[receiver]
+                    ReturnValue = itchat.send(context, toUserName=user_id)
                     if len(ReturnValue['MsgID']) == 0:
                         print('请求失败')
                         print(ReturnValue['BaseResponse'])
@@ -203,7 +226,7 @@ class send_message_to_wechat(object):
     def email_push(self, receiver_class):                      # 邮箱信息推送
         receivers = self.email_receiver[receiver_class]
         if len(receivers) == 0:
-            print(self.message_summary)
+            pass
         elif len(self.message_summary) > 0 and len(receivers) > 0:
             self.send_email.sends(receiver=receivers,
                                   context=self.message_summary,
@@ -232,13 +255,16 @@ class send_message_to_wechat(object):
             else:
                 new_filename = create_file(fn)
                 file_list.append(new_filename)
-                message += key_name + ' have trading signals'
 
         itchat.send(message, toUserName='filehelper')
         for receiver in self.wechat_file_receiver:
-            itchat.send(message, toUserName=receiver)
+            user_id = self.wechat_id[receiver]
+            ReturnValue = itchat.send(message, toUserName=user_id)
+            if len(ReturnValue['MsgID']) == 0:
+                print('请求失败')
+                print(ReturnValue['BaseResponse'])
             for fn in file_list:
-                itchat.send_file(fn, toUserName=receiver)
+                itchat.send_file(fn, toUserName=user_id)
         self.is_send_file = True
         self.is_change = True
         print(message)
@@ -257,7 +283,6 @@ class send_message_to_wechat(object):
                 self.send_wechat_file()
                 self.cache_write()
             self.future_query.temp_close()
-            print(now)
             time.sleep(self.time_interval)
             if np.mod(time.localtime()[4], 15) == 0:
                 itchat.send("wechat online", toUserName="filehelper")
@@ -322,8 +347,13 @@ if __name__ == '__main__':
     sw = send_message_to_wechat(reset_file='D:\\Python_Config\\WeChat_Send_reset.json',
                                 config_file='D:\\Python_Config\\WeChat_Send.json')
     sw.wechat_login()                              # 扫描二维码并登陆
+    print("log in over")
     th_1 = threading.Thread(target=itchat.run)
     th_2 = threading.Thread(target=sw.remind)
-    th_1.start()
-    th_2.start()
+    try:
+        th_1.start()
+        th_2.start()
+    except:
+        print(time.localtime())
+
     print('start over')                                    # 提醒模式
