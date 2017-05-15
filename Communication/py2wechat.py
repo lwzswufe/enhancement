@@ -132,10 +132,6 @@ class send_message_to_wechat(object):
             reset_config['next_reset_time'] = self.next_reset_time
             reset_config['time_str'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.next_reset_time))
 
-            fp = open(self.reset_file_name, 'w')
-            fp.write(json.dumps(reset_config))                                      # 重置文件//写入
-            fp.close()
-
             for i, fn_list in enumerate(self.file_name):                            # 重置文件
                 for fn in fn_list:
                     fp = open(fn_list[fn], 'w')
@@ -143,6 +139,11 @@ class send_message_to_wechat(object):
                     self.msg_send_num[i][fn] = 0
             self.is_send_file = False
             reset_config['msg_send_num'] = self.msg_send_num
+            reset_config['is_send_file'] = False
+
+            fp = open(self.reset_file_name, 'w')
+            fp.write(json.dumps(reset_config))                                      # 重置文件//写入
+            fp.close()
             print('reset over')
         else:
             self.msg_send_num = reset_config['msg_send_num']                        # 载入缓存
@@ -177,8 +178,14 @@ class send_message_to_wechat(object):
                     pass
                 elif count > self.wechat_total_message_maxlen:
                     self.msg_send_num[receiver_class][key_name] = len(contexts)
-                    context = '今日交易信息过多，请回复 ' + key_name + ' 获取完整交易信号，或者回复 ' +\
-                              key_name[0] + 'xxxxxx 查询单只股票交易信息'
+                    if key_name[1:] == 'buy':
+                        buy_or_sell = '买入'
+                    elif key_name[1:] == 'sell':
+                        buy_or_sell = '卖出'
+                    else:
+                        buy_or_sell = '交易'
+                    context = '今日' + buy_or_sell + '信号过多，请回复 ' + key_name + ' 获取完整' + buy_or_sell + \
+                              '信号，或者回复 ' + key_name[0] + 'xxxxxx 查询单只股票交易信息'
                     self.message_add(context)
                 else:
                     for context in contexts[st:]:                             # 跳过已经推送的信息
@@ -210,6 +217,7 @@ class send_message_to_wechat(object):
                 for receiver in self.wechat_receiver[receiver_class]:
                     user_id = self.wechat_id[receiver]
                     ReturnValue = itchat.send(context, toUserName=user_id)
+                    time.sleep(0.5)
                     if len(ReturnValue['MsgID']) == 0:
                         print('请求失败')
                         print(ReturnValue['BaseResponse'])
@@ -272,6 +280,7 @@ class send_message_to_wechat(object):
 
     def remind(self):                                          # 监控文件变化
         # self.wechat_push('Python_WeChat 已开始执行!')
+        next_time = 0
         while True:
             localtime = datetime.datetime.now()                # 获取当前时间
             now = localtime.strftime('%H:%M:%S')
@@ -284,8 +293,10 @@ class send_message_to_wechat(object):
                 self.cache_write()
             self.future_query.temp_close()
             time.sleep(self.time_interval)
-            if np.mod(time.localtime()[4], 15) == 0:
-                itchat.send("wechat online", toUserName="filehelper")
+            if time.time() > next_time:
+                context = "wechat online: " + now
+                itchat.send(context, toUserName="filehelper")
+                next_time = time.time() + 600
             if time.time() >= self.next_reset_time:
                 self.msg_send_num = self.daily_reset()
             if time.localtime()[3] > 16:
