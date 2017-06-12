@@ -4,11 +4,11 @@
 import os
 
 
-def main(file_path="D:\\Code\\Code\\"):
+def main(file_path="D:\\Code\\Code\\", rewrite=False):
 	flag = 0
 	for root, dirs, files in os.walk(file_path):
 		dir_name = root.split(sep='\\')[-1]
-		html_ = Html(dir_name, root)
+		html_ = Html(dir_name, root, rewrite)
 		for fn in files:
 			suffix = fn[-4:]
 			if suffix == '.jpg' or suffix == '.png':
@@ -19,12 +19,13 @@ def main(file_path="D:\\Code\\Code\\"):
 
 
 class Html():
-	def __init__(self, name='test', path='D:\\'):
+	def __init__(self, name='test', path='D:\\', rewrite=False):
 		self.name = name
 		self.head = '<html>\n<body>\n'
 		self.tail = '</body>\n</html>\n'
 		self.context = ''
 		self.file_path = path
+		self.rewrite = rewrite
 
 	def add_img(self, fn):
 		self.context += '<img src="' + fn + '"/>\n'
@@ -35,6 +36,8 @@ class Html():
 			return
 		else:
 			html_name = self.file_path + '\\' + self.name + ".html"
+			if not self.rewrite and os.path.exists(html_name):
+				return
 			with open(html_name, 'w') as fp:
 				fp.write(self.head)
 				fp.write(self.context)
