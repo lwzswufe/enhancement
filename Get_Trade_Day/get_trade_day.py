@@ -3,6 +3,7 @@
 # !/usr/bin/env python3
 import urllib.request as request
 import datetime
+import time
 '''
 @query a single date: string '20170401';
 @api return day_type: 0 workday 1 weekend 2 holiday -1 err
@@ -12,7 +13,16 @@ import datetime
 
 def get_day_type(query_date):
     url = 'http://tool.bitefu.net/jiari/?d=' + query_date
-    resp = request.urlopen(url)
+    flag = 0
+    try:
+        resp = request.urlopen(url)
+    except Exception as err:
+        print(err)
+        flag += 1
+        print('failed to open this url {} times'.format(str(flag)))
+        time.sleep(flag)
+        if flag > 5:
+            return -1
     content = resp.read()
     if content:
         try:
