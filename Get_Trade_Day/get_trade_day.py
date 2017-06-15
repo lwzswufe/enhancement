@@ -17,12 +17,13 @@ def get_day_type(query_date):
     while flag < 5:
         try:
             resp = request.urlopen(url)
-            break
         except Exception as err:
             print(err)
             flag += 1
             print('failed to open this url {} times'.format(str(flag)))
             time.sleep(flag)
+        else:
+            break
     if flag > 5:
         return -1
     content = resp.read()
