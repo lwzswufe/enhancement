@@ -14,15 +14,17 @@ import time
 def get_day_type(query_date):
     url = 'http://tool.bitefu.net/jiari/?d=' + query_date
     flag = 0
-    try:
-        resp = request.urlopen(url)
-    except Exception as err:
-        print(err)
-        flag += 1
-        print('failed to open this url {} times'.format(str(flag)))
-        time.sleep(flag)
-        if flag > 5:
-            return -1
+    while flag < 5:
+        try:
+            resp = request.urlopen(url)
+            break
+        except Exception as err:
+            print(err)
+            flag += 1
+            print('failed to open this url {} times'.format(str(flag)))
+            time.sleep(flag)
+    if flag > 5:
+        return -1
     content = resp.read()
     if content:
         try:
