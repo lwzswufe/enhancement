@@ -251,6 +251,8 @@ class send_message_to_wechat(object):
             pass
         elif clock[3] * 100 + clock[4] < 1123 or self.is_send_file or clock[3] * 100 + clock[4] > 1559:
             return
+        elif self.next_reset_time - time.time() > 3600 * 7:
+            return   # 在重置时间的7小时之内 既交易日当天的上午9点到下午4点之间发送自动文件
         message = time.strftime("%Y-%m-%d", time.localtime(self.next_reset_time))
         message += ' 今日缠论交易信号\n'
         file_list = list()
