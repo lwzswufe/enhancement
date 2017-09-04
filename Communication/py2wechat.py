@@ -19,9 +19,31 @@ from Get_Trade_Day.get_trade_day import next_tradeday
 import Communication.wechat_reply as wechat_reply
 sys.path.append(r'D:\Code\Code\PythonCode')
 import stockdownloads.trade_signal as trade_signal
-import Trade_on_wind.Future_Spread as Future_Spread
+# import Trade_on_wind.Future_Spread as Future_Spread
 
+'''
+msg:
+"{'FileSize': '', 'AppInfo': {'AppID': '', 'Type': 0}, 'PlayLength': 0, 'CreateTime': 1504441089, 'Url':
+ '', 'StatusNotifyCode': 0, 'User': <User: {'Alias': '', 'ChatRoomId': 0, 'StarFriend': 0, 'AttrStatus': 
+ 4193, 'PYQuanPin': 'shenwanjihuochengduceshi', 'KeyWord': '', 'Province': '', 'Statues': 0,
+  'EncryChatRoomId': '', 'Uin': 0, 'MemberList': <ContactList: []>, 'NickName': '申万期货成都测试', 
+  'VerifyFlag': 0, 'RemarkPYInitial': '', 'PYInitial': 'SWJHCDCS', 'HeadImgUrl': 
+  '/cgi-bin/mmwebwx-bin/webwxgeticon?seq=666043201&username=@f03518cce1f69c838edf5d20b
+  1363fcc91cfda4411cebf924c4&skey=@crypt_fe1921cc_de782dc50b3abc90cd', 'RemarkPYQuanPin': ''
+  , 'Signature': '', 'AppAccountFlag': 0, 'IsOwner': 0, 'MemberCount': 0, 'UserName': 
+  '@f03518cce1f69c838edf650668bdc74f55d20b1363fcc91cfda4411cebf924c4', 'OwnerUin': 0, 'SnsFlag': 0,
+   'DisplayName': '', 'ContactFlag': 3, 'City': '', 'Sex': 0, 'HideInputBarFlag': 0, 'RemarkName': ''
+   , 'UniFriend': 0}>, 'FromUserName': '@f03518cce1f69c838edf65066cfda4411cebf924c4',
+    'OriContent': '', 'NewMsgId': 6811144807938214809, 'ImgStatus': 1, 'VoiceLength': 0, 'MsgType': 1, 
+    'Type': 'Text', 'HasProductId': 0, 'ImgHeight': 0, 
+    'ToUserName': '@d1916b66636c806a7ba536a41ff356a9210d5841416bb8e28ef2cfab463cb496', 'Content':
+     'help', 'Text': 'help', 'MediaId': '', 'ForwardFlag': 0, 'MsgId': '6811144807938214809', 
+     'RecommendInfo': {'Alias': '', 'Scene': 0, 'AttrStatus': 0, 'Signature': '', 'QQNum': 0, 
+     'Province': '', 'UserName': '', 'OpCode': 0, 'Ticket': '', 'City': '', 'Sex': 0, 'NickName': '',
+      'Content': '', 'VerifyFlag': 0}, 'AppMsgType': 0, 'Ticket': '', 'ImgWidth': 0, 'FileName': '',
+       'Status': 3, 'StatusNotifyUserName': '', 'SubMsgType': 0}"
 
+'''
 class trade_list(trade_signal.trade_list):
     pass
 
@@ -81,7 +103,7 @@ class send_message_to_wechat(object):
 
         print('initial over')
         self.msg_send_num = self.daily_reset()
-        self.future_query = Future_Spread.Spread()
+        # self.future_query = Future_Spread.Spread()
 
         @itchat.msg_register(isGroupChat=False, msgType=TEXT)  # 个人私信
         def group_text_reply(msg):
@@ -293,7 +315,7 @@ class send_message_to_wechat(object):
                 self.send_message(receiver_class=3)
                 self.send_wechat_file()
                 self.cache_write()
-            self.future_query.temp_close()
+            # self.future_query.temp_close()
             time.sleep(self.time_interval)
             if time.time() > next_time:
                 context = "wechat online: " + now

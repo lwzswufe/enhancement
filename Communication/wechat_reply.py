@@ -20,29 +20,30 @@ def file_address():
     return PC
 
 
-def reply_signal(msg=dict, wechat_class=None):
+def reply_signal(msg=dict, wechat_class=None, from_user='test'):
     try:
         context = msg['Text']
-        texts = reply(context, wechat_class)
+        texts = reply(context, wechat_class, from_user)
         if len(texts) > 0:
             return texts
     except TypeError:
         print(msg)
 
 
-def reply_group(msg=dict, wechat_class=None):
+def reply_group(msg=dict, wechat_class=None, from_user='test'):
     try:
         context = msg['Text']
         # fromUserName = msg['FromUserName']
     except TypeError:
         print(msg)
     if context[0] == '#':
-        texts = reply(context[1:], wechat_class)
+        texts = reply(context[1:], wechat_class, from_user)
         if len(texts) > 0:
             return texts
 
 
-def reply(context=str, wechat_class=None):
+def reply(context=str, wechat_class=None, from_user='test'):
+    print('{}: {}'.format(from_user, context))
     if context == 'help' or context == '帮助':
         texts = '请输入信息与我开始互动(若在群聊中清以#开头)\n查询股票持仓：\n' +\
                 '超短线 sxxxxxx \n小时线 hxxxxxx \n日线 dxxxxxx\n' +\
