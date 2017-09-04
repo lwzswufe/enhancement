@@ -320,7 +320,7 @@ class send_message_to_wechat(object):
             if time.time() > next_time:
                 context = "wechat online: " + now
                 itchat.send(context, toUserName="filehelper")
-                next_time = time.time() + 600
+                next_time = time.time() + 153
             if time.time() >= self.next_reset_time:
                 self.msg_send_num = self.daily_reset()
             if time.localtime()[3] > 16:
