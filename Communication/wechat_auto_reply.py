@@ -22,12 +22,21 @@ def file_path():
 
 
 def get_nickname(msg_str):
-    for s in msg_str.split(','):
-        if 'NickName' in s:
-            nickname = s.split("'")[3]
-            return nickname
-    else:
-        print("we can not get nickname")
+	tmp = ''
+
+	for s in msg_str.split(','):
+		if 'RemarkName' in s:
+			nickname = s.split("'")[3]
+			print(nickname)
+			return nickname
+		elif 'filehelper' in s:
+			tmp = 'filehelper'
+	else:
+		if tmp == 'filehelper':
+			return 'filehelper'
+		else:
+			print("we can not get nickname")
+			return ''
 
 
 class auto_reply(object):
@@ -114,13 +123,14 @@ class auto_reply(object):
                 '日线买入   dbuy\n日线卖出   dsell\n'
 
         if self.from_user in self.manager:
-            texts += '荐股持仓 rcmds\n今日荐股 rcmds_today\n'
+            texts += '荐股持仓 推荐持仓 或 荐股持仓\n今日荐股 今日推荐 或 今日荐股\n'
 
         if self.from_user in self.recommender:
-            texts = '荐股持仓 rcmds 或 荐股持仓\n' \
-                    '今日荐股 rcmds_today 或 今日荐股' \
-                    '推荐买入 推荐买入 60000 浦发银行 17.20\n' \
-                    '推荐卖出 推荐卖出 60000 浦发银行 17.20\n' \
+            texts = '请输入信息与我开始互动:\n'\
+	                '荐股持仓 推荐持仓 或 荐股持仓\n' \
+                    '今日荐股 今日推荐 或 今日荐股\n' \
+                    '推荐买入 推荐买入 600000 浦发银行 17.20\n' \
+                    '推荐卖出 推荐卖出 600000 浦发银行 17.20\n' \
                     '撤销推荐 撤销推荐 600000\n'
 
         return texts
@@ -133,32 +143,35 @@ class auto_reply(object):
         else:
             recommender = None
 
-        if texts == 'rcmds' or texts == '荐股持仓':
+        if texts == '推荐持仓' or texts == '荐股持仓':
             df = self.rcmd.get_position_data(recommender=recommender)
-        elif texts == 'rcmds_today' or texts == '今日荐股':
+        elif texts == '今日推荐' or texts == '今日荐股':
             df = self.rcmd.get_today_data(recommender=recommender)
         elif '推荐买入' in texts:
-            name, code, price = texts.split(' ')[1:]
-            df = self.rcmd.append(code=code, name=name, price=price, buyorsell='买入', recommender=recommender)
+            _, code, name, price, *arr = split_str(texts)
+            df = self.rcmd.append(code=code, name=name, price=price, buyorsell='买入', recommender=recommender, arrs=arr)
         elif '推荐卖出' in texts:
-            name, code, price = texts.split(' ')[1:]
-            df = self.rcmd.append(code=code, name=name, price=price, buyorsell='卖出', recommender=recommender)
+            _, code, name, price, *arr = split_str(texts)
+            df = self.rcmd.append(code=code, name=name, price=price, buyorsell='卖出', recommender=recommender, arrs=arr)
         elif '撤销推荐' in texts:
-            code = texts.split(' ')[-1]
+            _, code, *arr = split_str(texts)
             df = self.rcmd.remove(code=code, recommender=recommender)
+        elif '更新' in texts:
+            winorloss, code, _, price, *arr = split_str(texts)
+            self.rcmd.update(code, winorloss, price)
         else:
             df = '输入指令错误'
 
         if isinstance(df, pd.DataFrame):
-            df.columns = ['荐股人', '买卖', '代码', '名称', '日期',  '时间', '价格']
+            df.columns = ['荐股人', '买卖', '代码', '名称', '日期',  '时间', '价格', '止盈', '止损']
 
             if len(df) == 0:
                 return '无荐股记录'
-            elif len(df) < 5 :
+            elif len(df) < 5:
                 return df.__str__()
             else:
-                fn = 'D:\\Cache\\tmp.csv'
-                df.to_csv(fn)
+                fn = 'D:\\Cache\\tmp.txt'
+                df.to_csv(fn, index=False)
                 return '@fil@' + fn
         else:
             return df
@@ -246,32 +259,48 @@ def create_file(filename='buy.txt', old_filepath='D:\\Share\\Trade\\macd_240_pos
     return new_filepath
 
 
+def split_str(strs=''):
+	word_list = list()
+	strs = strs.strip()
+	x = ord(strs[0])
+	word_tmp = ''
+	for c in strs[:-1]:
+		if (ord(c) - 256) * (x - 256) < 0:
+			word_list.append(word_tmp)
+			word_tmp = ''
+			x = ord(c)
+		word_tmp += c
+	word_list.append(word_tmp)
+
+	return word_list
+
 if __name__ == '__main__':
-    ar = auto_reply()
-    text = ar.reply_signal(msg={'Type': 'Text', 'Text': 'h600010', 'NickName': 'sdada'})
-    print(text)
-    text = ar.reply_signal(msg={'Type': 'Text', 'Text': 'd600128', 'NickName': '申购易罗小雨'})
-    print(text)
-    text = ar.reply_signal(msg={'Type': 'Text', 'Text': 's600037', 'NickName': '申购易罗小雨'})
-    print(text)
-    text = ar.reply_signal(msg={'Type': 'Text', 'Text': 'ssell', 'NickName': '申购易罗小雨'})
-    print(text)
-    text = ar.reply_signal(msg={'Type': 'Text', 'Text': 'help', 'NickName': '申购易罗小雨'})
-    print(text)
-    text = ar.reply_signal(msg={'Type': 'Text', 'Text': 'help', 'NickName': '申购易罗小雨'})
-    print(text)
-    text = ar.reply_signal(msg={'Type': 'Text', 'Text': 'help', 'NickName': '申购易苟峻'})
-    print(text)
-    text = ar.reply_signal(msg={'Type': 'Text', 'Text': '推荐买入 云南成 600239 17.2', 'NickName': '申购易罗小雨'})
-    print(text)
-    text = ar.reply_signal(msg={'Type': 'Text', 'Text': '推荐买入 云成 600239 17.2', 'NickName': '申购易蒲龙波'})
-    print(text)
-    text = ar.reply_signal(msg={'Type': 'Text', 'Text': '推荐卖出 云成 600239 17.2', 'NickName': '申购易蒲龙波'})
-    print(text)
-    text = ar.reply_signal(msg={'Type': 'Text', 'Text': '今日荐股', 'NickName': '申购易蒲龙波'})
-    print(text)
-    text = ar.reply_signal(msg={'Type': 'Text', 'Text': '今日荐股', 'NickName': '申购易苟峻'})
-    print(text)
-    text = ar.reply_signal(msg={'Type': 'Text', 'Text': '撤销推荐 600239', 'NickName': '申购易蒲龙波'})
-    print(text)
+	print(split_str('推荐买入600000浦发银行17.20止损18.00止盈17.00'))
+	ar = auto_reply()
+	text = ar.reply_signal(msg={'Type': 'Text', 'Text': 'h600010', 'NickName': 'sdada'})
+	print(text)
+	text = ar.reply_signal(msg={'Type': 'Text', 'Text': 'd600128', 'NickName': '申购易罗小雨'})
+	print(text)
+	text = ar.reply_signal(msg={'Type': 'Text', 'Text': 's600037', 'NickName': '申购易罗小雨'})
+	print(text)
+	text = ar.reply_signal(msg={'Type': 'Text', 'Text': 'ssell', 'NickName': '申购易罗小雨'})
+	print(text)
+	text = ar.reply_signal(msg={'Type': 'Text', 'Text': 'help', 'NickName': '申购易罗小雨'})
+	print(text)
+	text = ar.reply_signal(msg={'Type': 'Text', 'Text': 'help', 'NickName': '申购易罗小雨'})
+	print(text)
+	text = ar.reply_signal(msg={'Type': 'Text', 'Text': 'help', 'NickName': '申购易苟峻'})
+	print(text)
+	text = ar.reply_signal(msg={'Type': 'Text', 'Text': '推荐买入 云南成 600239 17.2', 'NickName': '申购易罗小雨'})
+	print(text)
+	text = ar.reply_signal(msg={'Type': 'Text', 'Text': '推荐买入 云成 600239 17.2', 'NickName': '申购易蒲龙波'})
+	print(text)
+	text = ar.reply_signal(msg={'Type': 'Text', 'Text': '推荐卖出 云成 600239 17.2', 'NickName': '申购易蒲龙波'})
+	print(text)
+	text = ar.reply_signal(msg={'Type': 'Text', 'Text': '今日荐股', 'NickName': '申购易蒲龙波'})
+	print(text)
+	text = ar.reply_signal(msg={'Type': 'Text', 'Text': '今日荐股', 'NickName': '申购易苟峻'})
+	print(text)
+	text = ar.reply_signal(msg={'Type': 'Text', 'Text': '撤销推荐 600239', 'NickName': '申购易蒲龙波'})
+	print(text)
 
