@@ -275,7 +275,7 @@ class send_message_to_wechat(object):
         clock = time.localtime()
         if mandatory_order:
             pass
-        elif clock[3] * 100 + clock[4] < 1123 or self.is_send_file or clock[3] * 100 + clock[4] > 1559:
+        elif clock[3] * 100 + clock[4] < 1127 or self.is_send_file or clock[3] * 100 + clock[4] > 1559:
             return
         elif self.next_reset_time - time.time() > 3600 * 7:
             return   # 在重置时间的7小时之内 既交易日当天的上午9点到下午4点之间发送自动文件
