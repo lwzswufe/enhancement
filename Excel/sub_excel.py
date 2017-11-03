@@ -14,7 +14,7 @@ style.font = font
 
 def read_excel():
     #    打开文件 读取模式
-    workbook = xlrd.open_workbook(r'D:\Cache\附件4 政府性债务投资项目资产明细（3张表）.xlsx')
+    workbook = xlrd.open_workbook(r'D:\Cache\（3张表）.xlsx')
     #   打开指定sheet
     sheet2 = workbook.sheet_by_name('存量债务')
     
