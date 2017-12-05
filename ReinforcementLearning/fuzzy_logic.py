@@ -1,6 +1,9 @@
 # author='lwz'
 # coding:utf-8
 import numpy as np
+'''
+模糊推理
+'''
 
 def o(a, b):
     row_n = a.shape[0]
