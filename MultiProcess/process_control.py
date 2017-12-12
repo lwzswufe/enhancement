@@ -15,6 +15,7 @@ def control(n):
     pool.join()
     print('{} process total used {:.4f}s'.format(n, time.time()-start_time))
 
+
 def task(i):
     start_time = time.time()
     primes = list()
