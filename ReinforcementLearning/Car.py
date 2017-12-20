@@ -66,7 +66,7 @@ def fuzzy_membership(x1, y1, x2, y2, direction_class, distance_class):
     r /= np.sum(r)
     # shape[1, m]
 
-    d = direction_class * np.array([[x2 - x1], [y2 - y1]])
+    d = direction_class @ np.array([[x2 - x1], [y2 - y1]])
     d[d < 0] = 0
     d = np.power(d, 2)
     d /= np.sum(d)
@@ -74,4 +74,5 @@ def fuzzy_membership(x1, y1, x2, y2, direction_class, distance_class):
 
     u = d * r
     # shape [n, m]
+    u /= np.sum(u)
     return u.flatten()
