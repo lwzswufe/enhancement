@@ -32,18 +32,24 @@ class Html():
 
     def write(self):
         if len(self.context) == 0:
-            print(self.name, ' is empty')
+            try:
+                print(self.name, ' is empty')
+            except UnicodeEncodeError:
+                pass
             return
         else:
             html_name = self.file_path + '\\' + self.name + ".html"
             if not self.rewrite and os.path.exists(html_name):
                 return
-            with open(html_name, 'w') as fp:
-                fp.write(self.head)
-                fp.write(self.context)
-                fp.write(self.tail)
+            try:
+                with open(html_name, 'w') as fp:
+                    fp.write(self.head)
+                    fp.write(self.context)
+                    fp.write(self.tail)
+            except UnicodeEncodeError:
+                print('error', html_name)
             print(self.name, ' write over')
 
 
 if __name__ == '__main__':
-    main(file_path="D:\\")
+    main(file_path="D:\\360安全浏览器下载\\")
