@@ -17,12 +17,13 @@ state_n = direction_n * distance_n
 direction_class = np.array([[cos(x/direction_n * 2 * pi), sin(x/direction_n * 2 * pi)]
                    for x in range(direction_n)])
 # 方向类中心
-distance_class = np.log(np.array([2, 4, 8]) + 1.0)
+c = np.array([2, 4, 8])
+distance_class = np.log(c + 1.0)
 # 距离类中心
 
-R_1 = distance_class
+R_1 = (np.ones([direction_n, 1]) * c).flatten()
 R_1 = R_1 - np.min(R_1)
-R_2 = distance_class
+R_2 = (np.ones([direction_n, 1]) * c).flatten()
 
 
 V_1 = np.ones([state_n, action_n])
@@ -45,6 +46,7 @@ gamma = 0.90            # learning parameter
 alpha = 0.05             # 误差学习速率
 lam = 0.5               # lambda 轨迹衰减速率
 iter = 0
+count = 0
 state_car_1 = fuzzy_membership(car_1.x, car_1.y, car_2.x, car_2.y,
                                    direction_class, distance_class)
 
@@ -56,12 +58,12 @@ while iter < 500000:
     return_1 = np.dot(state_car_1, V_1)
     return_2 = np.dot(state_car_2, V_2)
 
-    if np.random.rand() < 0.00:
+    if np.random.rand() < 0.05:
         action_1 = np.random.randint(0, action_n)
     else:
         action_1 = np.argmax(return_1)
 
-    if np.random.rand() < 0.00:
+    if np.random.rand() < 0.05:
         action_2 = np.random.randint(0, action_n)
     else:
         action_2 = np.argmax(return_2)
@@ -75,15 +77,15 @@ while iter < 500000:
     next_state_car_2 = fuzzy_membership(car_2.x, car_2.y, car_1.x, car_1.y,
                                    direction_class, distance_class)
 
-    next_action_car_1 = np.argmax(next_state_car_1 @ V_1)
-    delta = gamma * V_1[next_state_car_1, next_action_car_1] - V_1[state_car_1, action_1]\
-            + np.max(return_1)
-    V_1[state_car_1, action_1] += alpha * delta
+    rho = state_car_1 @ R_1 + gamma * next_state_car_1 @ np.max(V_1, axis=1) - state_car_1 @ V_1[:, action_1]
+    # p123 公式5.33
+    V_1[:, action_1] += alpha * rho * state_car_1
+    # p123 公式5.34
 
-    next_action_car_2 = np.argmax(next_state_car_2 @ V_2)
-    delta = gamma * V_2[next_state_car_2, next_action_car_2] - V_2[state_car_2, action_2] \
-            + np.max(return_2)
-    V_2[state_car_2, action_2] += alpha * delta
+    rho = state_car_2 @ R_2 + gamma * next_state_car_2 @ np.max(V_2, axis=1) - state_car_2 @ V_2[:, action_2]
+    # p123 公式5.33
+    V_2[:, action_2] += alpha * rho * state_car_2
+    # p123 公式5.34
 
 
     if np.sum(abs(V_1-V_1_)) + np.sum(abs(V_2-V_2_)) < 0.000001 and np.sum(V_1) > 0:

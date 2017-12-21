@@ -7,12 +7,11 @@ import time
 import json
 import os
 import numpy as np
-from itchat.content import *
 import shutil
 import sys
 sys.path.append(r'D:\Code\Code\enhancement')
 from Get_Trade_Day.get_trade_day import next_tradeday
-
+from Communication.Img import img_generator
 
 '''
 msg:
@@ -59,6 +58,7 @@ class send_message_to_wechat(object):
         self.wechat_receiver = config['wechat_receiver']
         self.email_receiver = config['email_receiver']
         self.wechat_file_receiver = config['wechat_file_receiver']
+        self.img_generator = img_generator(config['img_config'])
         if self.is_test:
             for i in range(len(self.wechat_receiver)):
                 self.wechat_receiver[i] = ["lwzswufe", "scarlett_cqr"]
@@ -119,7 +119,7 @@ class send_message_to_wechat(object):
                 print("can not find a friend named ", user_name)
 
     def message_add(self, context):                     # 汇总信息
-        if len(self.message_summary) == 0:
+        if len(self.message_summary) == 0 or len(self.wechat_message_list) == 0:
             self.wechat_message_list.append("")
         self.message_summary += context
         flag = len(self.wechat_message_list) - 1
@@ -208,8 +208,13 @@ class send_message_to_wechat(object):
             self.is_change = False
 
     def wechat_push(self, receiver_class=1):                              # 微信推送信息
+        if receiver_class == 0: # 图片
+            self.wechat_message_list = self.img_generator.get_imgs(self.wechat_message_list)
+
         if not self.wechat_push_permission:
             print(self.wechat_message_list)
+        elif len(self.wechat_message_list) == 0:
+            pass
         else:
             for i, context in enumerate(self.wechat_message_list):
                 for receiver in self.wechat_receiver[receiver_class]:
@@ -229,6 +234,9 @@ class send_message_to_wechat(object):
             count_len += len(context)
         return count_len
 
+    def img_push(self, receiver_class):
+        pass
+
     def email_push(self, receiver_class):                      # 邮箱信息推送
         pass
 
@@ -247,8 +255,6 @@ class send_message_to_wechat(object):
             if self.wechat_push_permission:
                 self.send_message(receiver_class=0)
                 self.send_message(receiver_class=1)
-                self.send_message(receiver_class=2)
-                self.send_message(receiver_class=3)
                 self.cache_write()
 
             time.sleep(self.time_interval)
@@ -265,9 +271,9 @@ class send_message_to_wechat(object):
 
 
 if __name__ == '__main__':
-    sw = send_message_to_wechat(reset_file='D:\\Python_Config\\WeChat_Send_reset.json',
-                                config_file='D:\\Python_Config\\WeChat_Send.json')
+    sw = send_message_to_wechat(reset_file='.\\tmp\\WeChat_Send_reset.json',
+                                config_file='.\\tmp\\WeChat_Send2.json')
     sw.wechat_login()                              # 扫描二维码并登陆
     print("log in over")
-    itchat.run()
+    sw.remind()
     print('start over')                                    # 提醒模式
