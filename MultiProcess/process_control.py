@@ -7,20 +7,23 @@ import os,time
 
 def control(n):
     pool = mp.Pool()
-    start_time = time.time()
+    start_time_main = time.time()
     for i in range(n):
         pool.apply_async(task, args=(i, ))
     print('pool start')
     pool.close()
     pool.join()
-    print('{} process total used {:.4f}s'.format(n, time.time()-start_time))
+    used_time = time.time()-start_time_main
+    print('{} process total used {:.4f}s'.format(n, used_time))
+    with open("log.txt", 'a') as f:
+        f.write(str(round(used_time, 2)) + '\n')
 
 
 def task(i):
     start_time = time.time()
     primes = list()
     x = 1
-    while x < 100000:
+    while x < 30000:
         x += 1
         for z in primes:
             if x % z == 0:
@@ -34,4 +37,7 @@ def task(i):
 
 if __name__ == '__main__':
     task(0)
-    control(4)
+    with open("log.txt", 'w') as f:
+        pass
+    for i in range(100):
+        control(15)
