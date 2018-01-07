@@ -2,15 +2,15 @@
 # coding:utf-8
 import time
 from functools import wraps
+# from guppy import h5py
 '''
-初始版
-计算julia集合 测试程序速度
+初始版 计算julia集合 测试程序速度
 框架中的一些函数添加自定义的decorator，添加后由于函数名和函数的doc发生了改变
 ，对测试结果有一些影响。所以，Python的functools包中提供了一个叫wraps的decorator
 来消除这样的副作用。写一个decorator的时候，最好在实现之前加上functools的wrap，
 它能保留原有函数的名称和docstring
 '''
-
+# hp = h5py()
 x1, x2, y1, y2 = -1.8, 1.8, -1.8, 1.8
 c_real, c_imag = -0.62772, -0.42193
 # julia集合的复数点
@@ -34,6 +34,11 @@ def calc_pure_python(desired_width, max_iterations):
     while xcoord < x2:
         x.append(xcoord)
         xcoord += x_step
+
+    if __name__ == '__main__' and False:
+        pass
+        # h = hp.heap()
+        # print(h)
 
     zs = []
     cs = []
@@ -83,6 +88,8 @@ def timefn_without_warps(fn):
 @timefn  # 实际上的调用是timefn(calculate_z_serial_purepython(*args, **kwargs))
 @timefn_without_warps  # timefn_without_warps(timefn(calculate_z_serial_purepython))
 # 装饰器1(装饰器2(被装饰函数))
+# @profile
+# line_profiler 会记录分析@profile装饰的函数 使用这个会显著的降低程序运行总时间
 def calculate_z_serial_purepython(maxiter, zs, cs):
     '''
     子程序 迭代计算f(z) = z*z + c 是否收敛
@@ -101,3 +108,5 @@ def calculate_z_serial_purepython(maxiter, zs, cs):
 
 if __name__ == '__main__':
     calc_pure_python(desired_width=1000, max_iterations=300)
+
+

@@ -1,0 +1,4 @@
+需要安装line_profiler
+需要在分析的程序里使用装饰器@profile
+cmd命令 kernprof -l -v Julia_set_00.py
+cmd /k kernprof -l -v "$(FULL_CURRENT_PATH)" & ECHO. & PAUSE & EXIT

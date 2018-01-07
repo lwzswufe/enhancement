@@ -1,0 +1,1 @@
+cmd /k python -m cProfile -s cumulative "$(FULL_CURRENT_PATH)" & ECHO. & PAUSE & EXIT
