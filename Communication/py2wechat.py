@@ -374,7 +374,15 @@ def create_file(filename='buy.txt', address='D:\\Share\\Trade\\macd_v2_log\\'):
         return filename
     localtime = datetime.datetime.now()
     new_filename = address + localtime.strftime('%y%m%d_%H%M%S_') + buyorsell + '.txt'
-    shutil.copyfile(filename, new_filename)
+    # shutil.copyfile(filename, new_filename)
+    with open(filename, 'r', encoding='utf-8') as f:
+        contexts = f.read()
+
+    contexts = contexts.replace('卖出', '盘中存在大单卖出')
+    contexts = contexts.replace('买入', '盘中存在大单买入')
+    with open(new_filename, 'w', encoding='utf-8') as f:
+        f.write(contexts)
+
     return new_filename
 
 
