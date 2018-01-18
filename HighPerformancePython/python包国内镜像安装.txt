@@ -1,0 +1,6 @@
+cd c:\anaconda3\scripts
+pip install -i http://pypi.douban.com/simple/  豆瓣
+pip install -i https://pypi.tuna.tsinghua.edu.cn/simple 清华
+pip install --upgrade tushare   更新
+pip install "pandas==0.18.1" 安装指定版本  
+pip uninstall scipy  卸载包
