@@ -1,4 +1,4 @@
-# author='scarlett'
+# author='lwz'
 # coding:utf-8
 import dis
 from HighPerformancePython import Julia_set_00

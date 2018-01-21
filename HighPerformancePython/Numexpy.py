@@ -1,8 +1,9 @@
-# author='scarlett'
+# author='lwz'
 # coding:utf-8
 from numexpr import evaluate
 import numpy as np
 import time
+import ctypes
 
 
 def array_init(size=100):
