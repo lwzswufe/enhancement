@@ -2,7 +2,7 @@
 # coding:utf-8
 # !/usr/bin/env python3
 # 绘制科赫曲线
-from numpy import *
+from numpy import concatenate, array, sqrt, cos, sin, pi
 import matplotlib.pyplot as plt
 
 '''

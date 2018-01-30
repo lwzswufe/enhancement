@@ -23,7 +23,7 @@ def task(i):
     start_time = time.time()
     primes = list()
     x = 1
-    while x < 30000:
+    while x < 10000:
         x += 1
         for z in primes:
             if x % z == 0:
@@ -39,5 +39,5 @@ if __name__ == '__main__':
     task(0)
     with open("log.txt", 'w') as f:
         pass
-    for i in range(100):
-        control(15)
+    for i in range(1):
+        control(1)

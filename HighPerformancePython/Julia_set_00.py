@@ -1,8 +1,10 @@
-# author='scarlett'
+# author='lwz'
 # coding:utf-8
 import time
 from functools import wraps
 # from guppy import h5py
+
+
 '''
 初始版 计算julia集合 测试程序速度
 框架中的一些函数添加自定义的decorator，添加后由于函数名和函数的doc发生了改变
@@ -10,6 +12,30 @@ from functools import wraps
 来消除这样的副作用。写一个decorator的时候，最好在实现之前加上functools的wrap，
 它能保留原有函数的名称和docstring
 '''
+# hasattr(__builtins__, 'profile') 判断命名空间__builtins__里有没有profile
+# '__builtin__' not in dir() 针对nosetest
+'''
+nosetests参数说明：
+
+-v:查看测试详细信息
+-s:显示脚本print信息,默认是print的信息是不输出的
+nose会查找脚本中 test_命名的函数和Test_命名的类
+运行测试脚本时,首先会运行脚本func级别的setUp()函数,
+这时候初始化web.py的app
+之后会执行class级别的setUp(self)函数,
+这时候初始self的app变量为之前初始化的app
+
+#这时候类的__init__()函数是不起作用的
+更详细的测试用例可以在test函数中编写,
+数据库之类的初始化可以再setUp()函数中编写
+'''
+if '__builtin__' not in dir() or not hasattr(__builtins__, 'profile'):
+    print('我们在命名空间里没有找到 @profile 于是自建了一个no-op的profile函数供@profile修饰符调用')
+    def profile(func):
+        def inner(*args, **kwargs):
+            return func(*args, **kwargs)
+        return inner
+
 # hp = h5py()
 x1, x2, y1, y2 = -1.8, 1.8, -1.8, 1.8
 c_real, c_imag = -0.62772, -0.42193
@@ -88,7 +114,7 @@ def timefn_without_warps(fn):
 @timefn  # 实际上的调用是timefn(calculate_z_serial_purepython(*args, **kwargs))
 @timefn_without_warps  # timefn_without_warps(timefn(calculate_z_serial_purepython))
 # 装饰器1(装饰器2(被装饰函数))
-# @profile
+@profile
 # line_profiler 会记录分析@profile装饰的函数 使用这个会显著的降低程序运行总时间
 def calculate_z_serial_purepython(maxiter, zs, cs):
     '''
