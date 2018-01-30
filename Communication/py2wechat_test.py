@@ -15,7 +15,6 @@ from email.mime.text import MIMEText
 import shutil
 import sys
 sys.path.append(r'D:\Code\Code\enhancement')
-from Get_Trade_Day.get_trade_day import next_tradeday
 import Communication.wechat_reply as wechat_reply
 sys.path.append(r'D:\Code\Code\PythonCode')
 import stockdownloads.trade_signal as trade_signal
@@ -153,7 +152,13 @@ class send_message_to_wechat(object):
         self.next_reset_time = reset_config['next_reset_time']
         self.is_send_file = reset_config['is_send_file']
         if self.next_reset_time < time.time():
-            time_stamp = next_tradeday(time_type='timestamp')
+            now = time.time()
+
+            if now % 86400 > 28800:
+                time_stamp = (now // 86400) * 86400 + 28800 + 86400
+            else:
+                time_stamp = (now // 86400) * 86400 + 28800
+
             self.next_reset_time = time_stamp - np.mod(time_stamp - 28800, 86400)  # 北京时间下午4点重置
             reset_config['next_reset_time'] = self.next_reset_time
             reset_config['time_str'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.next_reset_time))
