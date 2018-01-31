@@ -6,6 +6,11 @@ from aiohttp import web
 import sys
 
 
+'''
+如需要网络上其他机器访问需要设置本机地址为本机局域网IP
+cmd命令 ipconfig 查询本机IP
+然后外网机器可以通过本机外网IP访问
+'''
 TODOS = dict(zip([0, 1, 2, 3], ["zero", "first", "second", "third"]))
 
 
