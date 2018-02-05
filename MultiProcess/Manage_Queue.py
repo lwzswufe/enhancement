@@ -192,7 +192,8 @@ def main_3(n=3):
         print("main__ awake ...")
         for i in range(n):
             results = pickle.loads(queues[i][2].get())
-            print("main__ we get {} primes".format(len(results)))
+            time_str = time.strftime("%H:%M:%S", time.localtime())
+            print("main__ we get {} primes from process_{} at {}".format(len(results), i, time_str))
             if results is None:
                 pass
             else:
@@ -237,9 +238,11 @@ def worker_3(i, queues):
             else:
                 p_list.append(num)
 
-        print("process{} push data....".format(i))
+        time_str = time.strftime("%H:%M:%S", time.localtime())
+        print("process{} push data at {}....".format(i, time_str))
         queues[2].put(pickle.dumps(p_list))
-        print("process{} push data over....".format(i))
+        time_str = time.strftime("%H:%M:%S", time.localtime())
+        print("process{} push data over at {}....".format(i, time_str))
 
 
 if __name__ == '__main__':
