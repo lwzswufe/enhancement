@@ -24,4 +24,11 @@ print(t1.timeit(5))
 t1 = timeit.Timer(stmt='sum(x)', setup='x = (i for i in range(1000))')
 print(t1.timeit(5))
 
+
+def t():
+    time.sleep(1)
+
+
 print(timeit.timeit('x=map(lambda x:x*10,range(32))'))
+
+print(timeit.timeit('t()', setup='from __main__ import t', number=3))

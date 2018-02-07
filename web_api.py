@@ -5,8 +5,8 @@ import requests
 import json
 import pandas as pd
 
-user_table = pd.read_csv('user.txt', encoding='utf-8')
-url = "http://sw.sgytec.com/wxapi/api.php?action=sendwx"
+user_table = pd.read_csv('user2.txt', encoding='utf-8')
+url = "http://czt.sgytec.com/wxapi/api.php?action=sendwx"
 with open('api.json', 'r', encoding='utf-8') as f:
     data = json.load(f)
 
