@@ -1,0 +1,7 @@
+sudo apt install git   安装git
+conda create --name 名称 python=版本号   创建python虚拟环境
+git clone https://github.com/xxxxx  从github拷贝代码到本地
+ubuntu 命令行 alt+ctrl+F1-F6
+ubuntu 图形界面 alt+ctrl+F7
+login: user_name
+password: _(password)
