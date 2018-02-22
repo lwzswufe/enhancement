@@ -1,0 +1,7 @@
+使用虚拟环境
+set path=c:\anaconda3\envs\py352
+d:
+cd: D:\Code\Code\enhancement\HighPerformancePython\
+python
+import sys
+print(sys.version)

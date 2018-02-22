@@ -1,0 +1,17 @@
+创建虚拟环境
+conda create --name 虚拟环境名称 python=Python版本号
+
+激活虚拟环境
+activate 虚拟环境名称 
+
+关闭虚拟环境
+deactivate 虚拟环境名称 
+
+删除虚拟环境
+conda remove -n 虚拟环境名称
+
+查看本机上虚拟环境列表
+conda env list
+
+删除环境中的某个包
+conda remove --name your_env_name  package_name 即可
