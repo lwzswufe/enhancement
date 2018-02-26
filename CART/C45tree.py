@@ -35,6 +35,7 @@ class C45_tree(object):
         self.tree = self.build_tree(labels, self.dataset)
 
     def build_tree(self, label, dataset):
+        # 主函数 构建决策树
         cate_list = [data[-1] for data in dataset]  # 抽取源数据集的决策标签列
         # 程序终止条件1：如果cate_list 只有一种决策标签，停止划分，返回这个决策标签
         if cate_list.count(cate_list[0]) == len(cate_list):  # count方法 统计出现次数
@@ -60,7 +61,7 @@ class C45_tree(object):
         items = dict([(cate_list.count(i), i) for i in cate_list])
         return items[max(items.keys())]
 
-    def get_best_feat(self, dataset):
+    def get_best_feat(self, dataset): # 计算最优特征
         # 计算特征向量维， 种种最后一列用于类别标签， 因此要减去
         num_features = len(dataset[0]) - 1
         base_entropy = self.compute_entropy(dataset)
@@ -78,7 +79,9 @@ class C45_tree(object):
                 appear_num = float(len(sub_dataset))
                 sub_entropy = self.compute_entropy(sub_dataset)
                 result_gain += (appear_num / len(dataset)) * sub_entropy
+
             condition_entropy.append(result_gain)
+
         info_gain_array = base_entropy * ones(num_features) - array(condition_entropy)
         info_gain_ratio = info_gain_array / array(split_info)
         best_feature_index = argsort(-info_gain_ratio)[0]
@@ -90,6 +93,7 @@ class C45_tree(object):
         return entropy
 
     def compute_split_info(self, feature_vlist):
+        # 计算划分信息
         num_entries = len(feature_vlist)
         feature_value_setlist = list(set(feature_vlist))
         value_count = [feature_vlist.count(feat_vec) for feat_vec in feature_value_setlist]
