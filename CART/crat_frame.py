@@ -1,16 +1,12 @@
 # author='lwz'
 # coding:utf-8
-# !/usr/bin/env python3
 import pandas as pd
-from numpy import *
 import numpy as np
 import math
-import copy
-import pickle
 import os
 
 
-class C45_tree(object):
+class CRAT_tree(object):
     def __init__(self, is_classify=True,
                  min_samples_leaf=0, max_depth=4):  # 构造方法
         self.tree = {}
@@ -21,6 +17,8 @@ class C45_tree(object):
         self.min_samples_leaf = min_samples_leaf
         self.max_depth = max_depth
         self.node_id = -1  # 子节点编号
+        self.ops = [1, 4]
+        self.min_step = 0.001
 
     def get_node_id(self):
         self.node_id += 1
@@ -108,29 +106,30 @@ class C45_tree(object):
 
     def get_best_feat(self, dataset, labels): # 计算最优特征
         # 计算特征向量维， 种种最后一列用于类别标签， 因此要减去
-        num_features = len(labels)
-        base_entropy = self.compute_entropy(dataset)
-        condition_entropy = []  # 初始化条件熵
-        split_info = []
-        all_feat_vlist = []
+        num_values = len(dataset[self.target_col].value_counts())
+        if num_values == 1:
+            return
+
+        best_var = np.inf
+        best_label = ''
+        best_value = 0  # 最优划分值
+
         for label in labels:
-            feat_list = dataset[label]
-            split_i , feature_value_list = self.compute_split_info(feat_list)
-            all_feat_vlist.append(feature_value_list)
-            split_info.append(split_i)
-            result_gain = 0.0
-            for value in feature_value_list:
-                sub_dataset = self.split_dataset(label, value, dataset)
-                appear_num = float(len(sub_dataset))
-                sub_entropy = self.compute_entropy(sub_dataset)
-                result_gain += (appear_num / len(dataset)) * sub_entropy
+            split_values = set(dataset[self.target_col].value_counts())
+            for split_value in split_values:
+                d_0, d_1 = self.split_dataset(label, split_value, dataset)
+                new_var = self.compute_var(d_0, d_1)
+                if new_var < best_var:
+                    best_var = new_var
+                    best_label = label
+                    best_value = split_value
 
-            condition_entropy.append(result_gain)
+        base_var = self.compute_var(dataset)
 
-        info_gain_array = base_entropy * ones(num_features) - array(condition_entropy)
-        info_gain_ratio = info_gain_array / array(split_info)
-        best_feature_index = argsort(-info_gain_ratio)[0]
-        return best_feature_index, all_feat_vlist[best_feature_index]
+        if base_var - best_var < self.min_step:
+            return
+
+        return [best_var, best_label, best_value]
 
     def sub_entropy(self, len_1, len_2):
         prob = len_1 / float(len_2)  # 香农熵 = -p * log2(p)
@@ -146,28 +145,21 @@ class C45_tree(object):
         split_info = -sum(l_list)  # split_info = -sum(l)
         return split_info, list(value_count.index)
 
-    def compute_entropy(self, dataset):  # 计算香农熵 entropy=熵
-        data_len = float(len(dataset))
-        if self.target_col not in dataset.columns:
-            print("err")
-
-        cate_list = dataset[self.target_col]  # 获取类别标签
-        # 得到类别为key 出现次数为value的字典
-        items = cate_list.value_counts()
-        info_entropy = 0.0
-        for key in items.index:
-            prob = float(items[key]) / data_len  # 香农熵 = -p * log2(p)
-            info_entropy -= prob * math.log(prob, 2)
-
-        return info_entropy
+    def compute_var(self, dataset, dataset2=None):  # 计算方差
+        var = dataset[self.target_col].var()
+        if dataset2 is not None:
+            var += dataset2[self.target_col].var()
+        return var
 
     def split_dataset(self, label, value, dataset):  # 划分数据集合 删除特征轴所在列 返回剩余的数值
         try:
-            dd = dataset[dataset[label] == value]
+            d_1 = dataset[dataset[label] > value]
+            d_0 = dataset[dataset[label] <= value]
         except:
             print('err')
-        dd.__delitem__(label)  # 删除特征轴所在列
-        return dd  # 返回剩余的数值
+        d_1.__delitem__(label)  # 删除特征轴所在列
+        d_0.__delitem__(label)  # 删除特征轴所在列
+        return d_0, d_1  # 返回剩余的数值
 
     def predict(self, tree, feat_label, test_vec):
         root = tree.keys()[0]
