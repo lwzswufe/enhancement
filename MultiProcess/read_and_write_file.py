@@ -1,5 +1,30 @@
 # author='lwz'
 # coding:utf-8
+'''
+单进程 依次读取 依次写入
+strategy_1 used 21.6271s
+read: 3.4298s  calculate: 15.4644s  write: 2.7260s
+单进程 依次读取 集中写入
+strategy_2 used 21.9728s
+read: 3.4938s  calculate: 15.7605s  write: 2.6934s
+单进程 依次读取 集中写入一个文件
+strategy_3 used 19.3427s
+read: 3.1310s  calculate: 14.2042s  write: 1.9824s
+多进程 独立依次读取 独立依次写入
+total: 8.3542s  read: 1.1992s  calculate: 6.3188s  write: 0.8362s
+total: 8.4786s  read: 1.2815s  calculate: 6.3870s  write: 0.8091s
+total: 8.5056s  read: 1.2704s  calculate: 6.4512s  write: 0.7820s
+total: 8.5969s  read: 1.2524s  calculate: 6.5464s  write: 0.7971s
+strategy_4 used 14.4318s
+read: 0.0000s  calculate: 0.0000s  write: 0.0000s
+多进程 单独一个进程负责读写 其余进程处理数据
+total: 11.2409s    calculate: 6.0561s
+total: 11.2530s    calculate: 5.7653s
+total: 11.1347s    calculate: 5.3592s
+strategy_5 used 13.2012s
+read: 0.0000s  calculate: 0.0000s  write: 0.0000s
+total: 11.1788s    calculate: 4.8168s
+'''
 import pickle as pkl
 import pandas as pd
 import os
@@ -34,7 +59,7 @@ def csv_to_pickle(df):
     return df
 
 
-def get_stockname(fn='D:\\data\\tick_sh\\20170103\\600277_20170103.txt'):
+def get_stockname(fn='E:\\data\\tick_sh\\20170103\\600277_20170103.txt'):
     if fn[0] is '6':
         exchange = 'SH'
     elif fn[0] is '0' or fn[0] is '3':
@@ -54,8 +79,8 @@ def get_stockname(fn='D:\\data\\tick_sh\\20170103\\600277_20170103.txt'):
 
 
 def main():
-    csv_path = "D:\\20170103\\"
-    pkl_path = "D:\\pkl_data\\"
+    csv_path = "E:\\20170103\\"
+    pkl_path = "E:\\pkl_data\\"
     def_list = [strategy_1, strategy_2, strategy_3, strategy_4, strategy_5]
     # def_list = [strategy_5]
     num = 300
@@ -232,6 +257,7 @@ def task_5(queue, csv_path, pkl_path, process_i):
 
 
 def strategy_5(csv_path, pkl_path, num=30):
+    print("多进程 单独一个进程负责读写 其余进程处理数据")
     process_n = 4
     files = os.listdir(csv_path)
     files = [file for file in files if file[-4:] == '.txt']
@@ -250,7 +276,6 @@ def strategy_5(csv_path, pkl_path, num=30):
 
     flag = 0
     N = min(len(files), num)
-    print(N)
 
     while flag < N:
         for i in range(0, min(flag+process_n, N) - flag):
@@ -268,7 +293,8 @@ def strategy_5(csv_path, pkl_path, num=30):
             code = code_list[flag + i]
             df_ = pickle.loads(queues[i].get())
             if len(df_) == 0:
-                print(code)
+                pass
+                # print(code)
             else:
                 df_.to_pickle(pkl_path + code + ".pkl")
 
