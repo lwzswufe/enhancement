@@ -55,13 +55,14 @@ def csv2hdf5_1(csv_fn, hdf_fn, code):
     n_col = len(dt) - 1
     n_row = len(df)
 
+    time_st = time.time()
     f = h5py.File(hdf_fn, 'w')
     dset = f.create_dataset(name=code, shape=(n_row, ), dtype=dt)
     for col_name in df.columns[1:]:
         dset[col_name, :] = np.array(df[col_name])
 
     f.close()
-    print("size:{}".format(os.path.getsize(hdf_fn)))
+    print("size:{}, write_used{:.4f}s".format(os.path.getsize(hdf_fn), time.time()-time_st))
 
 
 def csv2hdf5_2(csv_fn, hdf_fn, code):
@@ -83,19 +84,64 @@ def csv2hdf5_2(csv_fn, hdf_fn, code):
     print(dt)
     n_row = len(df)
 
+    time_st = time.time()
     f = h5py.File(hdf_fn, 'w')
     dset = f.create_dataset(name=code, shape=(n_row, ), dtype=dt)
     for col_name in df.columns[1:]:
         dset[col_name, :] = np.array(df[col_name])
 
     f.close()
-    print("size:{}".format(os.path.getsize(hdf_fn)))
+    print("size:{}, write_used{:.4f}s".format(os.path.getsize(hdf_fn), time.time() - time_st))
+
+
+def csv2hdf5_3(csv_fn, hdf_fn, code):
+
+    df = pd.read_csv(csv_fn)
+
+    datetime = int(time.mktime(time.strptime(df['dates'][0], "%Y-%m-%d")))
+    columns = []
+    for key in df.columns[1:]:
+        if 'pr' in key:
+            df[key] = df[key].apply(lambda x: np.int(np.round(x * 100)))
+            columns.append(key)
+        elif key == "times":
+            df[key] = df[key].apply(lambda x: str2time(x) + datetime)
+            columns.append(key)
+        elif key == 'dates':
+            pass
+        else:
+            columns.append(key)
+
+    data = np.array(df.ix[:, columns].values, dtype=np.int64)
+    n_row, n_col = data.shape
+
+    time_st = time.time()
+    f = h5py.File(hdf_fn, 'w')
+    f.create_dataset(name=code, shape=(n_row, n_col), dtype=np.int64, data=data)
+    f.close()
+    print("size:{}, write_used{:.4f}s".format(os.path.getsize(hdf_fn), time.time() - time_st))
+
+
+def str2time(x='09:02:01'):
+    return int(x[:2]) * 3600 + int(x[3:5]) * 60 + int(x[6:])
+
+
+def read_hdf(fn, code):
+    time_st = time.time()
+    f = h5py.File(fn, 'r')
+    data = np.array(f[code])
+    f.close()
+    print("read_used{:.4f}s".format(time.time() - time_st))
 
 
 if __name__ == "__main__":
-    df = pd.read_hdf(hdf_fn, key=code)
+    # df = pd.read_hdf(hdf_fn, key=code)
     csv2hdf5_1(csv_fn, hdf_fn, code)
+    read_hdf(hdf_fn, code)
     csv2hdf5_2(csv_fn, hdf_fn, code)
+    read_hdf(hdf_fn, code)
+    csv2hdf5_3(csv_fn, hdf_fn, code)
+    read_hdf(hdf_fn, code)
 
 
 
