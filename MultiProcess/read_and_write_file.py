@@ -24,6 +24,13 @@ total: 11.1347s    calculate: 5.3592s
 strategy_5 used 13.2012s
 read: 0.0000s  calculate: 0.0000s  write: 0.0000s
 total: 11.1788s    calculate: 4.8168s
+多进程 单独一个进程负责读写 通过单独的queue通讯 其余进程处理数据
+strategy_6 used 9.6803s
+read: 0.0000s  calculate: 0.0000s  write: 0.0000s
+total: 8.1617s    calculate: 4.6443s
+total: 8.1557s    calculate: 4.5120s
+total: 8.1477s    calculate: 4.7125s
+total: 8.1256s    calculate: 4.9572s
 '''
 import pickle as pkl
 import pandas as pd
@@ -81,8 +88,8 @@ def get_stockname(fn='E:\\data\\tick_sh\\20170103\\600277_20170103.txt'):
 def main():
     csv_path = "E:\\20170103\\"
     pkl_path = "E:\\pkl_data\\"
-    def_list = [strategy_1, strategy_2, strategy_3, strategy_4, strategy_5]
-    # def_list = [strategy_5]
+    def_list = [strategy_1, strategy_2, strategy_3, strategy_4, strategy_5, strategy_6]
+    # def_list = [strategy_6]
     num = 300
     for func in def_list:
         pkl_path_ = pkl_path + func.__name__ + "\\"
@@ -302,6 +309,53 @@ def strategy_5(csv_path, pkl_path, num=30):
 
     for i in range(process_n):
         queues[i].put(b'stop')
+
+    return read_time, cal_time, write_time
+
+
+def strategy_6(csv_path, pkl_path, num=30):
+    print("多进程 单独一个进程负责读写 通过公用的queue通讯 其余进程处理数据")
+    process_n = 4
+    files = os.listdir(csv_path)
+    files = [file for file in files if file[-4:] == '.txt']
+    df_list = []
+    code_list = []
+    jobs = list()
+    cal_time = 0
+    read_time = 0
+    write_time = 0
+    queue = Queue(process_n)
+
+    for i in range(process_n):
+        job = Process(target=task_5, args=(queue, csv_path, pkl_path, i))
+        jobs.append(job)
+        job.start()
+
+    flag = 0
+    N = min(len(files), num)
+
+    while flag < N + process_n:
+        if flag < N:
+            file = files[flag]
+            code = get_stockname(file)
+            code_list.append(code)
+            if code:
+                df = pd.read_csv(csv_path + file)
+                queue.put(pickle.dumps(df))
+
+        if flag >= process_n:
+            if code:
+                df_ = pickle.loads(queue.get())
+                if len(df_) == 0:
+                    pass
+                    # print(code)
+                else:
+                    df_.to_pickle(pkl_path + code + ".pkl")
+
+        flag += 1
+
+    for i in range(process_n):
+        queue.put(b'stop')
 
     return read_time, cal_time, write_time
 
