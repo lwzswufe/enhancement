@@ -83,6 +83,7 @@ class LineItem_2:
     def subtotal(self):
         return self.weight * self.price
 
+
 if __name__ == "__main__":
     f = FrozenJSON({"name_": "scr", "_id":  1})
     print(f.__dict__)
