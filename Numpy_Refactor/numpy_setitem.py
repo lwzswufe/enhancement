@@ -1,6 +1,11 @@
 # author='lwz'
 # coding:utf-8
 import numpy as np
+
+
+# author='lwz'
+# coding:utf-8
+import numpy as np
 '''
 拦截索引
 '''
@@ -16,7 +21,7 @@ class Arr():
         self.columns_dict = dict(zip(columns, range(len(columns))))
         print(self.columns_dict)
 
-    def __getitem__(self, item):        # 拦截分片
+    def __setitem__(self, item, value):        # 拦截分片
         if isinstance(item, tuple) and len(item) == 2:
             if isinstance(item[1], str):
                 item = (item[0], self.columns_dict[item[1]])
@@ -33,15 +38,14 @@ class Arr():
                 idxs = [self.columns_dict[key] for key in item]
                 item = (slice(None, None, None), idxs)
 
-        return self.data[item]
-
+        self.data[item] = value
 
 if __name__ == "__main__":
     a = Arr()
     a.set_columns(["zero", "one", "two", "three", "four"])
-    print(a['one'])
-    print(a[['one', 'four']])
-    print(a[:, "two"])
-    print(a[4, "two"])
-    print(a[3, ['two', 'four']])
+    print(a.data)
+    a['three'] = np.ones(5)
+    print(a.data)
+    a[1, ['one', 'four']] = 3
+    print(a.data)
 
