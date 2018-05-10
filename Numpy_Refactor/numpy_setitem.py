@@ -1,11 +1,6 @@
 # author='lwz'
 # coding:utf-8
 import numpy as np
-
-
-# author='lwz'
-# coding:utf-8
-import numpy as np
 '''
 拦截索引
 '''
@@ -39,6 +34,19 @@ class Arr():
                 item = (slice(None, None, None), idxs)
 
         self.data[item] = value
+
+        def shift(self, t, column=None):
+            if column is None:
+                col_slice = slice(None, None, None)
+            else:
+                col_slice = self.columns_dict[column]
+
+            if t >= 0:
+                row_slice = slice(t, None, None)
+            else:
+                row_slice = slice(None, t, None)
+
+            return self.data.__getitem__((row_slice, col_slice))
 
 if __name__ == "__main__":
     a = Arr()
