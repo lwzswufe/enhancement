@@ -25,12 +25,12 @@ strategy_5 used 13.2012s
 read: 0.0000s  calculate: 0.0000s  write: 0.0000s
 total: 11.1788s    calculate: 4.8168s
 多进程 单独一个进程负责读写 通过单独的queue通讯 其余进程处理数据
-strategy_6 used 9.6803s
+strategy_6 used 9.5777s
 read: 0.0000s  calculate: 0.0000s  write: 0.0000s
-total: 8.1617s    calculate: 4.6443s
-total: 8.1557s    calculate: 4.5120s
-total: 8.1477s    calculate: 4.7125s
-total: 8.1256s    calculate: 4.9572s
+total: 8.1722s    calculate: 5.9753s
+total: 8.1712s    calculate: 5.9351s
+total: 8.1070s    calculate: 5.9131s
+total: 8.1682s    calculate: 5.9542s
 '''
 import pickle as pkl
 import pandas as pd
@@ -313,6 +313,35 @@ def strategy_5(csv_path, pkl_path, num=30):
     return read_time, cal_time, write_time
 
 
+def task_6(queue_put, queue_get, csv_path, pkl_path, process_i):
+    cal_time = 0
+    st_time = time.time()
+    while True:
+        # print("process{} wait for data....".format(process_i))
+        data = queue_put.get()
+        if data == b'stop':
+            # print("process{} end....".format(process_i))
+            break
+        else:
+            df_ = pickle.loads(data)
+
+        if "trade_vol" not in df_.columns:
+            queue_get.put(pickle.dumps(pd.DataFrame()))
+            continue
+
+        t0 = time.time()
+        df = csv_to_pickle(df_)
+        t1 = time.time()
+        cal_time += t1 - t0
+
+        queue_get.put(pickle.dumps(df))
+        # print("process{} send data over".format(process_i))
+
+    total_time = time.time() - st_time
+    print("total: {:.4f}s    calculate: {:.4f}s ".
+          format(total_time,  cal_time))
+
+
 def strategy_6(csv_path, pkl_path, num=30):
     print("多进程 单独一个进程负责读写 通过公用的queue通讯 其余进程处理数据")
     process_n = 4
@@ -324,38 +353,42 @@ def strategy_6(csv_path, pkl_path, num=30):
     cal_time = 0
     read_time = 0
     write_time = 0
-    queue = Queue(process_n)
+    queue_put = Queue(process_n)
+    queue_get = Queue()
+    put_flag = 0
+    get_flag = 0
 
     for i in range(process_n):
-        job = Process(target=task_5, args=(queue, csv_path, pkl_path, i))
+        job = Process(target=task_6, args=(queue_put, queue_get, csv_path, pkl_path, i))
         jobs.append(job)
         job.start()
 
     flag = 0
     N = min(len(files), num)
 
-    while flag < N + process_n:
+    while flag < N or put_flag > get_flag:
         if flag < N:
             file = files[flag]
+            flag += 1
             code = get_stockname(file)
             code_list.append(code)
             if code:
                 df = pd.read_csv(csv_path + file)
-                queue.put(pickle.dumps(df))
+                queue_put.put(pickle.dumps(df))
+                put_flag += 1
 
-        if flag >= process_n:
-            if code:
-                df_ = pickle.loads(queue.get())
-                if len(df_) == 0:
-                    pass
-                    # print(code)
-                else:
-                    df_.to_pickle(pkl_path + code + ".pkl")
-
-        flag += 1
+        if flag < N and put_flag - get_flag < process_n:
+            pass
+        else:
+            df_ = pickle.loads(queue_get.get())
+            get_flag += 1
+            if len(df_) == 0:
+                pass
+            else:
+                df_.to_pickle(pkl_path + code + ".pkl")
 
     for i in range(process_n):
-        queue.put(b'stop')
+        queue_put.put(b'stop')
 
     return read_time, cal_time, write_time
 
