@@ -41,7 +41,7 @@ def get_ini():
 
 
 def read_ini(config):
-    str_ = config.get("global", "index-url")
+    str_ = config.get("global", "index-url")        # 获取[global]部分index-url的值
     print(str_)
 
 
