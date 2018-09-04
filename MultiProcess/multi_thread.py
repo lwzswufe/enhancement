@@ -11,41 +11,49 @@ MSG = []
 
 
 def task_agent(thread_id=0):
+    event_num = 0
     while True:
         event.wait()                # 阻塞 等待主线程唤醒
+        event_num += 1
         if len(MSG) > 0:
             for msg in MSG:
                 print("thread {} get {}".format(thread_id, msg))
                 if msg == "stop":   # 退出循环 关闭子进程
-                    print("thread {} end".format(thread_id))
+                    print("thread {} end event_num: {}".format(thread_id, event_num))
                     return
-        time.sleep(0.2)             # 等待主线程关闭任务
+        MSG.clear()
+        event.clear()               # 重置event状态
+        # time.sleep(0.01)          # 等待主线程关闭任务
 
 
 def task_main():
-    for i in range(10):
+    event_num = 0
+    for i in range(100):
         MSG.append("str_{}".format(i))
-        if i in [2, 3, 5, 7, 9]:
+        if i % 5 == 0:
             event.set()             # 开启event 唤醒子线程
-            time.sleep(0.18)        # 等待子线程执行
-            MSG.clear()             # 清空缓存数据
-            event.clear()           # 重置event状态
-            print(MSG)
+            event_num += 1
+            time.sleep(0.00001)     # 等待子线程执行
+
     MSG.append("stop")              # 关闭子线程
     event.set()                     # 唤醒子线程 让其自行关闭
+    print("trread main event_num: {}".format(event_num))
 
 
 if __name__ == "__main__":
     event = Event()
     th_0 = Thread(target=task_main, args=())
     th_list = [th_0]
-    for i in range(3):
+    for i in range(1):
         th = Thread(target=task_agent, args=(i, ))
         th_list.append(th)
         th.start()
+    st_time = time.time()
     th_0.start()
     for th in th_list:
         th.join()                   # 阻塞 等待子线程结束
+    usetime = time.time() - st_time
+    print("use {:.3f}s".format(usetime))
     
 
 
