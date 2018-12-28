@@ -1,0 +1,19 @@
+
+进入mongodb安装目录 打开CMD输入:
+单次启动服务端:      mongod.exe --config=mongod.cfg
+单次启动客户端:      mongo
+进入mongodb安装目录 用管理员身份打开CMD输入:
+配置为系统服务：     mongod --config="C:\Program Files\MongoDB\Server\4.0\bin\mongod.cfg" --serviceName "MongoDB" --install
+在cmd输入            net start mongodb
+开启mongodb服务
+https://docs.mongodb.com/manual/tutorial/install-mongodb-on-windows/#run-mongodb-from-cmd
+http://www.cnblogs.com/stephen-liu74/archive/2012/09/22/2658670.html
+C:\Program Files\MongoDB\Server\4.0\bin
+1. mongo.exe，命令行客户端工具。
+2. mongod.exe，数据库服务程序。
+3. mongodump.exe，数据库备份程序。
+4. mongoexport.exe，数据导出工具。
+5. mongofiles.exe，GridFS工具。
+6. mongoimport.exe，数据导入工具。
+7. mongorestore.exe，数据库恢复工具。
+8. mongos.exe，貌似是性能检测工具。
