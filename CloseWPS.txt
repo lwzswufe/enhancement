@@ -1,0 +1,6 @@
+:start
+taskkill /im wpscenter.exe /f
+taskkill /im wpscloudsvr.exe /f
+echo %date% %time% CloseWPS
+ping localhost -n 10 > nul
+goto start
