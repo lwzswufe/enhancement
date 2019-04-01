@@ -6,10 +6,24 @@ ubuntu 图形界面 alt+ctrl+F7
 login: user_name
 password: _(password)
 
+删除
+rm  filename
+rm -r dirname
+查看文本文件
+vi filename
+insert 开启插入模式
+退出查看文本文件
+Esc+:q！不保存退出
+Esc+:wq 保存退出
+切换root
+sudo su
+添加libpath
+export LD_LIBRARY_PATH=路径:$LD_LIBRARY_PATH
+
 ubuntu 进入python 后使用help(packge)：
 q（quit）退出 
 r（return） 返回上一目录
-
+echo &PATH               查看环境变量
 
 conda list 查看安装了哪些包。
 conda env list 或 conda info -e 查看当前存在哪些虚拟环境

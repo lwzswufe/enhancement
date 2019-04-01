@@ -1,0 +1,43 @@
+cd Downloads
+sudo bash xxxx.sh                    安装sh格式文件
+pip install future --user            安装future包
+python -m pip install future --user  安装future包 如上一条语句安装失败
+sudo apt-get install mongodb         如果安装的时候报找不到mongodb，就更新一下apt的源文件信息 sudo apt-get update
+sudo apt-get install libboost-all-dev
+sudo apt-get install cmake
+sudo apt-get install git 
+sudo apt-get install libsnappy-dev
+sudo apt-get install python-snappy
+
+
+sudo apt-get install build-essential  提供编译程序必须软件包的列表信息
+sudo apt-get install python-dev       以python为例, 以下情况你是需要python-dev的
+
+你需要自己安装一个源外的python类库, 而这个类库内含需要编译的调用python api的c/c++文件
+你自己写的一个程序编译需要链接libpythonXX.(a|so)
+(注:以上不含使用ctypes/ffi或者裸dlsym方式直接调用libpython.so)
+
+
+
+head /etc/mongodb.conf                查看MongoDB的数据文件和日志文件的具体位置
+
+https://robomongo.org/download        下载robomongo MongoDB可视化软件  解压后，把robomongo文件夹保存到一个常用的软件文件夹内，因为robomongo会直接从这个文件夹启动
+cd Downloads                        
+tar -xzf xxxxxx.tar.gz                 解压缩文件 并复制到home目录下
+bash pycharm/bin/pycharm.sh            启动pycharm
+解压 vnpy 然后进入vnpy目录
+bash install.sh
+
+sudo apt-get install xrdp
+sudo apt-get install vnc4server
+sudo apt-get install xubuntu-desktop
+sudo echo "xfce4-session" >~/.xsession
+sudo vi /etc/xrdp/startwm.sh
+#在. /etc/X11/Xsesion这一行前面加上一行，内容是：xfce4-session
+sudo service xrdp restart
+
+wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
+
+如果有权限错误:        Error: Missing write permissions in:
+那么需要改一下 文件的权限
+sudo chown -R 你的用户名 /home/你的用户名/anaconda2 例如 sudo chown -R wiz /home/wiz/anaconda2 
