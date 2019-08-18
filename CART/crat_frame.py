@@ -1,9 +1,15 @@
 # author='lwz'
 # coding:utf-8
-import pandas as pd
 import numpy as np
+import pandas as pd
 import math
 import os
+
+
+'''
+  pd.CategoricalDtype类型的变量是分类变量
+非pd.CategoricalDtype类型的变量默认是有序变量
+'''
 
 
 class CRAT_tree(object):
@@ -17,8 +23,8 @@ class CRAT_tree(object):
         self.min_samples_leaf = min_samples_leaf
         self.max_depth = max_depth
         self.node_id = -1  # 子节点编号
-        self.ops = [1, 4]
         self.min_step = 0.001
+        self.ordinal_sample_num = 10 # 连续变量采样数
 
     def get_node_id(self):
         self.node_id += 1
@@ -58,7 +64,7 @@ class CRAT_tree(object):
         node = Node(self.get_node_id(), message='', head='')
         if self.classify:
             # 程序终止条件1：如果cate_list 只有一种决策标签，停止划分，返回这个决策标签
-            tag = dataset.ix[dataset.index[0], self.target_col]
+            tag = dataset.loc[dataset.index[0], self.target_col]
             if len(dataset[self.target_col].value_counts()) < 2:
                 # 程序终止条件2：如果数据集的第一个决策标签只有一个，则返回这个决策标签
                 node.message = "num:{}\nclass:{}".format(tag, len(dataset))
@@ -82,12 +88,19 @@ class CRAT_tree(object):
             return node
 
         # >>>>>>>>>>>>>>>算法核心<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-        best_feat, feat_value_list = self.get_best_feat(dataset, labels)
-        best_feat_label = labels[best_feat]
+        # best_feat, feat_value_list = self.get_best_feat(dataset, labels)
+        data = self.get_best_feat(dataset, labels)
+        if data is None:
+            return node
+        else:
+            best_var, best_label, best_value = data
+        best_feat_label = best_label
         labels.remove(best_feat_label)
         node.message = "num:{}\nlabel:{};".format(len(dataset), best_feat_label)
         # 抽取最优特征值向量
         # unique_vals = set([data[best_feat] for data in dataset])
+        # 遍历离散变量
+        # 连续变量直接二分
         for value in feat_value_list:
             sub_labels = labels[:]
             split_data = self.split_dataset(best_feat_label, value, dataset)
@@ -100,44 +113,73 @@ class CRAT_tree(object):
 
         return node
 
-    def max_cate(self, dataset):  # 计算出现最多的类别标签：
+    def max_cate(self, dataset):
+        '''
+        # 计算出现最多的类别标签
+        :param dataset: 数据集
+        :return:
+        '''
         tag = dataset.value_counts().index[0]
         return tag
 
-    def get_best_feat(self, dataset, labels): # 计算最优特征
-        # 计算特征向量维， 种种最后一列用于类别标签， 因此要减去
+    def get_best_feat(self, dataset, labels):
+        '''
+        计算最优特征
+        #计算特征向量维， 种类最后一列用于类别标签， 因此要减去
+        :param dataset:
+        :param labels:
+        :return:
+        '''
+
         num_values = len(dataset[self.target_col].value_counts())
+        # 只剩一种类型 到达叶节点
         if num_values == 1:
             return
 
         best_var = np.inf
         best_label = ''
         best_value = 0  # 最优划分值
-
+        # 遍历标签
         for label in labels:
-            split_values = set(dataset[self.target_col].value_counts())
+            split_values = self.get_split_values(dataset[label])
             for split_value in split_values:
-                d_0, d_1 = self.split_dataset(label, split_value, dataset)
-                new_var = self.compute_var(d_0, d_1)
+                data_list = self.split_dataset(label, split_value, dataset)
+                new_var = self.compute_var(data_list)
                 if new_var < best_var:
                     best_var = new_var
                     best_label = label
                     best_value = split_value
 
         base_var = self.compute_var(dataset)
-
+        # 本次信息增益小于最低要求
         if base_var - best_var < self.min_step:
-            return
+            return None
 
-        return [best_var, best_label, best_value]
+        d_0, d_1 = self.split_dataset(best_label, best_value, dataset)
+        # 本节点无法再细分
+        if len(d_0) < self.min_samples_leaf or len(d_1) < self.min_samples_leaf:
+            return None
+        # 正常返回
+        return best_var, best_label, best_value
+
 
     def sub_entropy(self, len_1, len_2):
-        prob = len_1 / float(len_2)  # 香农熵 = -p * log2(p)
+        '''
+        计算香农熵 = -p * log2(p)
+        :param len_1: 样本1数量
+        :param len_2: 样本2数量
+        :return:
+        '''
+        prob = len_1 / float(len_2)
         entropy = prob * math.log(prob, 2)
         return entropy
 
     def compute_split_info(self, feature_vlist):
-        # 计算划分信息 按特征A划分样本集S的广度和均匀度
+        '''
+        计算划分信息 按特征A划分样本集S的广度和均匀度
+        :param feature_vlist:
+        :return:
+        '''
         num_entries = len(feature_vlist)
         value_count = feature_vlist.value_counts()
         p_list = [float(item) / num_entries for item in value_count]  # p = S_i / sum(S)
@@ -145,21 +187,49 @@ class CRAT_tree(object):
         split_info = -sum(l_list)  # split_info = -sum(l)
         return split_info, list(value_count.index)
 
-    def compute_var(self, dataset, dataset2=None):  # 计算方差
-        var = dataset[self.target_col].var()
-        if dataset2 is not None:
-            var += dataset2[self.target_col].var()
+    def compute_var(self, datalist):
+        '''
+        计算方差
+        '''
+        var = 0
+        for data in datalist:
+            var += data[self.target_col].var()
         return var
 
-    def split_dataset(self, label, value, dataset):  # 划分数据集合 删除特征轴所在列 返回剩余的数值
+    def split_dataset_categorical(self, label, dataset):
+        '''
+        分类变量划分数据集合 删除特征轴所在列 返回剩余的数值
+        '''
+        df_list = [df for label_, df in dataset.groupby(label)]
+        for df in df_list:
+            df.__delitem__(label)  # 删除特征轴所在列
+        return df_list  # 返回剩余的数值
+
+    def split_dataset_ordinal(self, label, value, dataset):
+        '''
+        有序变量划分数据集合 不删除特征轴所在列
+        '''
         try:
             d_1 = dataset[dataset[label] > value]
             d_0 = dataset[dataset[label] <= value]
-        except:
-            print('err')
-        d_1.__delitem__(label)  # 删除特征轴所在列
-        d_0.__delitem__(label)  # 删除特征轴所在列
+        except Exception as err:
+            print(err)
+            return []
         return d_0, d_1  # 返回剩余的数值
+
+    def get_split_values(self, series):
+        '''
+        从指定Series里获取带分解的
+        :param split_series:
+        :return:
+        '''
+        if isinstance(series.dtype, pd.CategoricalDtype):
+            split_values = set(series)
+        else:
+            arg_min = series.sort()
+            max_idx = len(series) - 1
+            split_values = set([round(i * 1.0 / (self.ordinal_sample_num + 1) * max_idx) for i in range(self.ordinal_sample_num)])
+        return split_values
 
     def predict(self, tree, feat_label, test_vec):
         root = tree.keys()[0]
@@ -234,7 +304,7 @@ class Node(object):
 
 
 def dot2jpg(fn='Tree0.dot'):
-    dotPath = "D:\\software\\Graphviz\\bin\\dot.exe"
+    dotPath = "C:\\Program Files (x86)\\Graphviz2.38\\bin\\dot.exe"
     sourcePath = os.getcwd() + '\\' + fn
     jpgPath = os.getcwd() + '\\tree.jpg'
     cmd_str = dotPath + ' -Tjpg ' + sourcePath + ' -o ' + jpgPath
@@ -243,8 +313,8 @@ def dot2jpg(fn='Tree0.dot'):
 
 
 if __name__ == "__main__":
-    c45 = C45_tree()
-    c45.load_dataset()
-    c45.train()
-    disp_tree(c45.tree)
+    crat = CRAT_tree()
+    crat.load_dataset("data.csv", "class")
+    crat.train()
+    disp_tree(crat.tree)
     dot2jpg()
