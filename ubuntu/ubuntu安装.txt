@@ -1,0 +1,25 @@
+NVIDIA显卡的ubuntu初次启动 需要在grub界面 选择ubuntu 进入高级模块 在quiet splash后面增加nomodeset
+>>>>>>>>>>>>>>>>>>>>>>在grub启动项里增加 nomodeset>>>>>>>>>>>>>>>>>>>>
+sudo nano /etc/default/grub
+and then add nomodeset to GRUB_CMDLINE_LINUX_DEFAULT
+GRUB_CMDLINE_LINUX_DEFAULT="quiet splash nomodeset"
+And then save by hitting Ctrl+O, then exit nano with Ctrl+X, then simply run
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+sudo apt-get install cmake
+安装Git
+
+sudo apt install git
+安装拼音输入法 
+sudo apt-get install fcitx-pinyin
+将系统->语言设置->已安装语言管理->键盘输入系统 选择为fcitx
+
+sudo apt-get install build-essential
+安装编译器辅助软件包
+
+bash Anaconda.sh
+安装Anaconda
+
+tar -xvf pycharm.tar.gz -C /home/PyCharm
+解压压缩包
+sh PyCharm/bin/pycharm.sh
+启动pycharm安装脚本

@@ -7,24 +7,26 @@ import os
 
 
 '''
-  pd.CategoricalDtype类型的变量是分类变量
-非pd.CategoricalDtype类型的变量默认是有序变量
+
+  str类型 与 bool类型 的变量是分类变量
+非str类型 与 bool类型 的变量默认是有序变量
 '''
 
 
-class CRAT_tree(object):
-    def __init__(self, is_classify=True,
+class CartTree(object):
+    def __init__(self, target_col="", labels=[],
                  min_samples_leaf=0, max_depth=4):  # 构造方法
         self.tree = {}
         self.dataset = pd.DataFrame()  # 数据集
-        self.labels = []  # 标签集
-        self.traget_col = 'target'
-        self.classify = is_classify
+        self.labels = labels  # 标签集
+        self.traget_col = target_col
+        self.time_phase = 0
+        self.classify = False
         self.min_samples_leaf = min_samples_leaf
         self.max_depth = max_depth
         self.node_id = -1  # 子节点编号
         self.min_step = 0.001
-        self.ordinal_sample_num = 10 # 连续变量采样数
+        self.ordinal_sample_num = 10  # 连续变量采样数
 
     def get_node_id(self):
         self.node_id += 1
@@ -39,16 +41,16 @@ class CRAT_tree(object):
         :return: None
         '''
         if len(fname) == 0:
-            self.dataset = pd.DataFrame(np.eye(4).reshape((4, 4)),
-                            columns=['one', 'two', 'three', 'y'])
+            self.dataset = pd.DataFrame(np.eye(4).reshape((4, 4)), columns=['one', 'two', 'three', 'y'])
         else:
             self.dataset = pd.read_csv(fname)
 
         if target_col not in self.dataset.columns:
             print("we con not find target_col '{}' in columns".format(target_col))
             raise IndexError
-        self.target_col = target_col
 
+        self.target_col = target_col
+        self.is_classify(self.dataset[target_col][0])
         if len(labels) == 0:
             self.labels = list(self.dataset.columns)
             self.labels.remove(target_col)
@@ -89,31 +91,30 @@ class CRAT_tree(object):
 
         # >>>>>>>>>>>>>>>算法核心<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         # best_feat, feat_value_list = self.get_best_feat(dataset, labels)
-        data = self.get_best_feat(dataset, labels)
-        if data is None:
+        return_data = self.get_best_feat(dataset, labels)
+        if return_data is None:
             return node
         else:
-            best_var, best_label, best_value = data
-        best_feat_label = best_label
-        labels.remove(best_feat_label)
-        node.message = "num:{}\nlabel:{};".format(len(dataset), best_feat_label)
-        # 抽取最优特征值向量
-        # unique_vals = set([data[best_feat] for data in dataset])
-        # 遍历离散变量
-        # 连续变量直接二分
-        for value in feat_value_list:
-            sub_labels = labels[:]
-            split_data = self.split_dataset(best_feat_label, value, dataset)
-            children_node = self.build_tree(split_data, sub_labels, deep+1)  # 递归
-            children_node.head = "{}={}\n".format(best_feat_label, value)
+            best_var, best_label, best_value = return_data
+
+        node.message = "num:{}\nlabel:{};".format(len(dataset), best_label)
+        # 划分数据
+        if best_value is None:
+            data_list, tag_list = self.split_dataset_categorical(best_label, dataset)
+        else:
+            data_list, tag_list = self.split_dataset_ordinal(best_label, best_value, dataset)
+        # 创建子节点
+        for i, sub_data in enumerate(data_list):
+            children_node = self.build_tree(sub_data, best_label, deep + 1)  # 递归
+            children_node.head = tag_list[i]
             if isinstance(children_node, str):
                 print('err')
             else:
                 node.add_children_node(children_node)
-
         return node
 
-    def max_cate(self, dataset):
+    @staticmethod
+    def max_cate(dataset):
         '''
         # 计算出现最多的类别标签
         :param dataset: 数据集
@@ -141,29 +142,32 @@ class CRAT_tree(object):
         best_value = 0  # 最优划分值
         # 遍历标签
         for label in labels:
-            split_values = self.get_split_values(dataset[label])
-            for split_value in split_values:
-                data_list = self.split_dataset(label, split_value, dataset)
+            if isinstance(dataset[label].dtype, pd.CategoricalDtype) or \
+               isinstance(dataset[label][0], bool):
+                data_list = self.split_dataset_categorical(dataset, label)
                 new_var = self.compute_var(data_list)
-                if new_var < best_var:
-                    best_var = new_var
-                    best_label = label
-                    best_value = split_value
+                best_value = None
+            else:
+                new_value, new_var = self.get_best_ordinal_split_value(dataset, label)
+            if new_var < best_var:
+                best_var = new_var
+                best_value = new_value
 
         base_var = self.compute_var(dataset)
         # 本次信息增益小于最低要求
         if base_var - best_var < self.min_step:
             return None
 
-        d_0, d_1 = self.split_dataset(best_label, best_value, dataset)
+        data_list = self.split_dataset(best_label, best_value, dataset)
+        min_data_length = [len(data) for data in data_list]
         # 本节点无法再细分
-        if len(d_0) < self.min_samples_leaf or len(d_1) < self.min_samples_leaf:
+        if min_data_length < self.min_samples_leaf:
             return None
         # 正常返回
         return best_var, best_label, best_value
 
-
-    def sub_entropy(self, len_1, len_2):
+    @staticmethod
+    def sub_entropy(len_1, len_2):
         '''
         计算香农熵 = -p * log2(p)
         :param len_1: 样本1数量
@@ -174,7 +178,8 @@ class CRAT_tree(object):
         entropy = prob * math.log(prob, 2)
         return entropy
 
-    def compute_split_info(self, feature_vlist):
+    @staticmethod
+    def compute_split_info(feature_vlist):
         '''
         计算划分信息 按特征A划分样本集S的广度和均匀度
         :param feature_vlist:
@@ -187,7 +192,7 @@ class CRAT_tree(object):
         split_info = -sum(l_list)  # split_info = -sum(l)
         return split_info, list(value_count.index)
 
-    def compute_var(self, datalist):
+    def compute_var(self, datalist=[]):
         '''
         计算方差
         '''
@@ -196,40 +201,63 @@ class CRAT_tree(object):
             var += data[self.target_col].var()
         return var
 
-    def split_dataset_categorical(self, label, dataset):
+    def get_best_ordinal_split_value(self, dataset, label):
+        '''
+        :param label:
+        :param value:
+        :param dataset:
+        :return:
+        '''
+        best_var = np.inf
+        best_value = 0  # 最优划分值
+        arg_min = dataset[label].sort()
+        max_idx = len(dataset[label]) - 1
+        split_values = set([round(i * 1.0 / (self.ordinal_sample_num + 1) * max_idx) for i in range(self.ordinal_sample_num)])
+        for split_value in split_values:
+            data_list = self.split_dataset_ordinal(label, split_value, dataset)
+            new_var = self.compute_var(data_list)
+            if new_var < best_var:
+                best_var = new_var
+                best_value = split_value
+        return best_value, best_var
+
+    @staticmethod
+    def split_dataset_categorical(label, dataset):
         '''
         分类变量划分数据集合 删除特征轴所在列 返回剩余的数值
         '''
-        df_list = [df for label_, df in dataset.groupby(label)]
-        for df in df_list:
+        df_list = []
+        tag_list = []
+        for label_, df in dataset.groupby(label):
             df.__delitem__(label)  # 删除特征轴所在列
-        return df_list  # 返回剩余的数值
+            df_list.append(df)
+            tag_list.append("{}={}".format(label, label_))
+        return df_list, tag_list  # 返回剩余的数值
 
-    def split_dataset_ordinal(self, label, value, dataset):
+    @staticmethod
+    def split_dataset_ordinal(label, value, dataset):
         '''
         有序变量划分数据集合 不删除特征轴所在列
         '''
         try:
-            d_1 = dataset[dataset[label] > value]
             d_0 = dataset[dataset[label] <= value]
+            d_1 = dataset[dataset[label] > value]
+            tag_0 = "{}<={}".format(label, value)
+            tag_1 = "{}>{}".format(label, value)
         except Exception as err:
             print(err)
-            return []
-        return d_0, d_1  # 返回剩余的数值
+            return [], []
+        return [d_0, d_1], [tag_0, tag_1]  # 返回剩余的数值
 
-    def get_split_values(self, series):
+    @staticmethod
+    def is_classify(x):
         '''
-        从指定Series里获取带分解的
-        :param split_series:
-        :return:
+        判断变量x是不是分类变量
         '''
-        if isinstance(series.dtype, pd.CategoricalDtype):
-            split_values = set(series)
+        if isinstance(x, str) or isinstance(x, bool):
+            return True
         else:
-            arg_min = series.sort()
-            max_idx = len(series) - 1
-            split_values = set([round(i * 1.0 / (self.ordinal_sample_num + 1) * max_idx) for i in range(self.ordinal_sample_num)])
-        return split_values
+            return False
 
     def predict(self, tree, feat_label, test_vec):
         root = tree.keys()[0]
@@ -249,6 +277,7 @@ def disp_branch(branch, f):
     f.write(context)
     for sub_branch in branch.sub_nodes:
         disp_branch(sub_branch, f)
+
 
 def disp_tree(tree):
     with open('Tree0.dot', 'w', encoding='utf-8') as f:
@@ -313,7 +342,7 @@ def dot2jpg(fn='Tree0.dot'):
 
 
 if __name__ == "__main__":
-    crat = CRAT_tree()
+    crat = CartTree()
     crat.load_dataset("data.csv", "class")
     crat.train()
     disp_tree(crat.tree)
