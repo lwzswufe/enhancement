@@ -1,0 +1,16 @@
+{
+  "version": "0.1.0",
+  "command": "C:\\Anaconda3\\python.exe",
+  "isShellCommand": true,
+  "stopOnEntry": false,
+  "showOutput": "always",
+  "options": 
+  {
+    "env": 
+    {
+      "PYTHONIOENCODING":"utf-8"
+    },
+    "PYTHONIOENCODING":"utf-8"
+  },
+  "args": ["${file}"]
+}
