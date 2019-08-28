@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import math
 import os
-from DecisionTree.cart_frame import CartTree
+from DecisionTree.cart_frame import CartTree, disp_tree, dot2jpg
 
 
 def main():
@@ -15,8 +15,12 @@ def main():
        'mean20_006', 'mean60_006', 'mean5_300', 'mean20_300', 'mean60_300',
        'is_break']
     target_col = "y"
-    crat = CartTree(target_col, labels)
-    crat.load_dataset(filename)
+    crat = CartTree()
+    crat.load_dataset(filename, target_col, labels)
     crat.train()
     disp_tree(crat.tree)
     dot2jpg()
+
+
+if __name__ == "__main__":
+    main()

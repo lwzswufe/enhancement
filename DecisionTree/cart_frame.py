@@ -14,12 +14,12 @@ import os
 
 
 class CartTree(object):
-    def __init__(self, target_col="", labels=[],
+    def __init__(self,
                  min_samples_leaf=0, max_depth=4):  # 构造方法
         self.tree = {}
         self.dataset = pd.DataFrame()  # 数据集
-        self.labels = labels  # 标签集
-        self.traget_col = target_col
+        self.labels = []  # 标签集
+        self.traget_col = ''
         self.time_phase = 0
         self.classify = False
         self.min_samples_leaf = min_samples_leaf
@@ -101,11 +101,12 @@ class CartTree(object):
         # 划分数据
         if best_value is None:
             data_list, tag_list = self.split_dataset_categorical(best_label, dataset)
+            labels.remove(best_label)
         else:
             data_list, tag_list = self.split_dataset_ordinal(best_label, best_value, dataset)
         # 创建子节点
         for i, sub_data in enumerate(data_list):
-            children_node = self.build_tree(sub_data, best_label, deep + 1)  # 递归
+            children_node = self.build_tree(sub_data, labels, deep + 1)  # 递归
             children_node.head = tag_list[i]
             if isinstance(children_node, str):
                 print('err')
@@ -144,25 +145,26 @@ class CartTree(object):
         for label in labels:
             if isinstance(dataset[label].dtype, pd.CategoricalDtype) or \
                isinstance(dataset[label][0], bool):
-                data_list = self.split_dataset_categorical(dataset, label)
+                data_list, _ = self.split_dataset_categorical(dataset, label)
                 new_var = self.compute_var(data_list)
                 best_value = None
             else:
                 new_value, new_var = self.get_best_ordinal_split_value(dataset, label)
+                data_list, _ = self.split_dataset_ordinal(label, new_value, dataset)
+            # 判断节点大小
+            min_data_length = min([len(data) for data in data_list])
+            # 本节点无法再细分
+            if min_data_length < self.min_samples_leaf:
+                continue
             if new_var < best_var:
                 best_var = new_var
                 best_value = new_value
 
-        base_var = self.compute_var(dataset)
+        base_var = self.compute_var([dataset])
         # 本次信息增益小于最低要求
         if base_var - best_var < self.min_step:
             return None
 
-        data_list = self.split_dataset(best_label, best_value, dataset)
-        min_data_length = [len(data) for data in data_list]
-        # 本节点无法再细分
-        if min_data_length < self.min_samples_leaf:
-            return None
         # 正常返回
         return best_var, best_label, best_value
 
@@ -210,11 +212,12 @@ class CartTree(object):
         '''
         best_var = np.inf
         best_value = 0  # 最优划分值
-        arg_min = dataset[label].sort()
+        arg_min = dataset[label].argsort()
         max_idx = len(dataset[label]) - 1
-        split_values = set([round(i * 1.0 / (self.ordinal_sample_num + 1) * max_idx) for i in range(self.ordinal_sample_num)])
+        value_idx = set([round(i * 1.0 / (self.ordinal_sample_num + 1) * max_idx) for i in range(self.ordinal_sample_num)])
+        split_values = [arg_min[idx] for idx in value_idx]
         for split_value in split_values:
-            data_list = self.split_dataset_ordinal(label, split_value, dataset)
+            data_list, _ = self.split_dataset_ordinal(label, split_value, dataset)
             new_var = self.compute_var(data_list)
             if new_var < best_var:
                 best_var = new_var
@@ -333,7 +336,7 @@ class Node(object):
 
 
 def dot2jpg(fn='Tree0.dot'):
-    dotPath = "C:\\Program Files (x86)\\Graphviz2.38\\bin\\dot.exe"
+    dotPath = '"C:\\Program Files (x86)\\Graphviz2.38\\bin\\dot.exe"'
     sourcePath = os.getcwd() + '\\' + fn
     jpgPath = os.getcwd() + '\\tree.jpg'
     cmd_str = dotPath + ' -Tjpg ' + sourcePath + ' -o ' + jpgPath
