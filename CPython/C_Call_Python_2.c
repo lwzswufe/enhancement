@@ -14,7 +14,8 @@ long call_python_fun(long a)
     long res = 1;
     PyObject *pModule, *pFunc;
     PyObject *pArgs, *pValue;
-    
+    /* Initializing the interpreter */
+    Py_Initialize();
     /* import */
     pModule = PyImport_ImportModule("python_file_exm");
     if (pModule == NULL)
@@ -33,12 +34,13 @@ long call_python_fun(long a)
     pArgs = PyTuple_New(1);
     /* set args pos = 0*/
     PyTuple_SetItem(pArgs, 0, PyLong_FromLong(a));
-      
     /* call */
-    // pValue = PyObject_CallObject(pFunc, pArgs);
-    
-    // res = PyLong_AsLong(pValue);
-    printf("we input %d output %d\n", a, res);
+    pValue = PyObject_CallObject(pFunc, pArgs);
+    /* parse */
+    res = PyLong_AsLong(pValue);
+    /* finalizing the interpreter */
+    Py_Finalize();
+    printf("C get %d\n", res);
     return res;
 }
 
