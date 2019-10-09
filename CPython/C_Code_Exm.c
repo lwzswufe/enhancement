@@ -5,6 +5,7 @@
 
 /*
 需要被Python调用的C代码 编译命令:
+gcc C_Code_Exm.h C_Code_Exm.c C_Decorate_Exm.c -I C:\\Anaconda3\\include -L C:\\Anaconda3 -l python36 -o C_Exm.pyd -shared -fPIC
 */
 int fac(int n)  
 {  

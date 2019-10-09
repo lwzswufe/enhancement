@@ -1,15 +1,13 @@
-import ctypes
+import cExm
 
 '''
-运行前需要将 C_dll.c 编译为 动态链接库 C_dll.so
+运行前需要将 C_Code_Exm.h C_Code_Exm.c C_Decorate_Exm.c 编译为 动态链接库 C_Exm.pyd
 '''
-dll = ctypes.cdll.LoadLibrary
-lib = dll("./cExm.so")
 print("python call cpp dll:")
-lib.cExm_test()
+cExm.test()
 n = 5
-c = lib.fac(n)
+c = cExm.fac(n)
 print("factor({}) = {}".format(n, c))
 s = "abcdefg"
-return_s = lib.doppel(s)
+return_s = cExm.doppel(s)
 print("python put {}\n C return {}".format(s, return_s))
