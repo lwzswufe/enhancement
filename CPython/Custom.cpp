@@ -1,6 +1,5 @@
-#include <math.h>
 #include <stdio.h>
-// #include "Custom.h"
+#include "math.h"
 #include "Python.h"
 #include "structmember.h"
 #define PY_SSIZE_T_CLEAN
@@ -8,7 +7,8 @@
 
 /*
 编译命令:
-g++ Custom.h Custom.cpp -I C:\\Anaconda3\\include -L C:\\Anaconda3 -l python36 -o custom.pyd -shared -fPIC
+g++ Custom.h Custom.cpp -D_hypot=hypot -I C:\\Anaconda3\\include -L C:\\Anaconda3 -l python36 -o custom.pyd -shared -fPIC
+add "-D_hypot=hypot" for error: '::hypot' has not been declared 
 */
 /*
 PyObject_HEAD 是强制要求必须在每个对象结构体之前，用以定义一个类型为 PyObject 的字段叫 ob_base ，
@@ -48,6 +48,13 @@ typedef struct
     PyObject *last;  /* last name */
     int number;
 } CustomObject;
+static char member_name_first[] = {"first"};
+static char member_name_last[] = {"last"};
+static char member_name_number[] = {"number"};
+
+static char member_doc_first[] = {"first name"};
+static char member_doc_last[] = {"last name"};
+static char member_doc_number[] = {"number name"};
 
 // 定义CustomType 结构体，其定义了一堆标识和函数指针，会指向解释器里请求的操作
 // 定义Python类型
@@ -62,6 +69,7 @@ static void Custom_dealloc(CustomObject *self)
     Py_XDECREF(self->first);                    // 减少引用计数
     Py_XDECREF(self->last);                     // 减少引用计数
     Py_TYPE(self)->tp_free((PyObject *) self);  // 释放对象
+    printf("__del__()\n");
 }
 
 // 定义Python对象函数  __new__()
@@ -85,13 +93,17 @@ static PyObject * Custom_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
         }
         self->number = 0;
     }
+    printf("__new__()\n");
     return (PyObject *) self;                           // 返回 实例
 }
 
 // Python对象 初始化函数 __init__()
 static int Custom_init(CustomObject *self, PyObject *args, PyObject *kwds)
 {
-    static char *kwlist[] = {"first", "last", "number", NULL};
+    static char *kwlist[] = {member_name_first, 
+                             member_name_last,
+                             member_name_number, 
+                             NULL};
     PyObject *first = NULL, *last = NULL, *tmp;
     // 解析构造函数参数
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OOi", kwlist,
@@ -113,6 +125,7 @@ static int Custom_init(CustomObject *self, PyObject *args, PyObject *kwds)
         self->last = last;
         Py_XDECREF(tmp);        // 减少 原变量的  引用计数
     }
+    printf("__init__()\n");
     return 0;
 }
 
@@ -121,12 +134,12 @@ static PyObject * Custom_name(CustomObject *self, PyObject *Py_UNUSED(ignored))
 {   // Py_UNUSED 这个可用于函数定义中未使用的参数以隐藏编译器警告
     if (self->first == NULL) 
     {
-        PyErr_SetString(PyExc_AttributeError, "first");
+        PyErr_SetString(PyExc_AttributeError, member_name_first);
         return NULL;
     }
     if (self->last == NULL) 
     {
-        PyErr_SetString(PyExc_AttributeError, "last");
+        PyErr_SetString(PyExc_AttributeError, member_name_first);
         return NULL;
     }
     return PyUnicode_FromFormat("%S %S", self->first, self->last);
@@ -142,9 +155,9 @@ PyMODINIT_FUNC PyInit_custom(void)
     Custom_methods[0] = {"name", (PyCFunction) Custom_name, METH_NOARGS, "Return the name, combining the first and last name"};
     Custom_methods[1] = {NULL};
     // 对模块变量列表进行初始化
-    Custom_members[0] = {"first", T_OBJECT_EX, offsetof(CustomObject, first), 0, "first name"};
-    Custom_members[1] = {"last",  T_OBJECT_EX, offsetof(CustomObject, last),  0, "last name"};
-    Custom_members[2] = {"number", T_INT,      offsetof(CustomObject, number), 0,"custom number"};
+    Custom_members[0] = {member_name_first, T_OBJECT_EX, offsetof(CustomObject, first), 0, member_doc_first};
+    Custom_members[1] = {member_name_last , T_OBJECT_EX, offsetof(CustomObject, last),  0, member_name_last};
+    Custom_members[2] = {member_name_number, T_INT,     offsetof(CustomObject, number), 0, member_name_number};
     Custom_members[3] = {NULL};
     // 类型函数初始化
     CustomType.tp_name = "custom.Custom";     // 类型描述  __str__
