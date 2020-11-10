@@ -1,0 +1,15 @@
+下载 http://www.redis.cn/
+解压 tar xzf redis-6.0.6.tar.gz
+编译 cd redis-6.0.6
+     make
+进入到解压后的目录
+启动 ./src/redis-server
+
+安装python的redis包
+pip install redis
+
+安装Redis可视化工具
+https://www.jianshu.com/p/721c3762a777
+Redis桌面管理器（又名RDM） 是一个用于Windows，Linux和MacOS的快速开源Redis数据库管理应用程序。
+该工具提供了一个易于使用的GUI，可以访问Redis数据库并执行一些基本操作：将键视为树，CRUD键，通过shell执行命令。
+
