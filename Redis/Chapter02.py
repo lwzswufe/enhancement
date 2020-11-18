@@ -4,7 +4,7 @@ import redis
 # host是redis主机，需要redis服务端和客户端都启动 redis默认端口是6379
 r = redis.Redis(host='localhost', port=6379, decode_responses=True)   
 # key是"foo" value是"bar" 将键值对存入redis缓存
-# 設置键name对应的值
+# 设置键name对应的值
 # set(name, value, ex=None, px=None, nx=False, xx=False)
 # 在Redis中设置值，默认，不存在则创建，存在则修改
 # 参数：
@@ -12,7 +12,7 @@ r = redis.Redis(host='localhost', port=6379, decode_responses=True)
 # px，过期时间（毫秒）
 # nx，如果设置为True，则只有name不存在时，当前set操作才执行
 # xx，如果设置为True，则只有name存在时，当前set操作才执行
-r.set("設置:", 'name', 'junxi')  
+r.set("设置:", 'name', 'junxi')  
 print(r['name'])
 # 取出键name对应的值
 print("取出:", r.get('name'))  
