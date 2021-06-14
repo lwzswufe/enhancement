@@ -8,6 +8,7 @@
 /*
 编译命令:
 g++ Custom.h Custom.cpp -D_hypot=hypot -I C:\\Anaconda3\\include -L C:\\Anaconda3 -l python36 -o custom.pyd -shared -fPIC
+g++ Custom.cpp -D_hypot=hypot -I /home/wiz/anaconda3/include/python3.8  -L /home/wiz/anaconda3/lib -l python3.8 -o custom.pyd -shared -fPIC
 add "-D_hypot=hypot" for error: '::hypot' has not been declared 
 */
 /*
@@ -130,7 +131,7 @@ static int Custom_init(CustomObject *self, PyObject *args, PyObject *kwds)
 }
 
 // 定义Python对象函数
-static PyObject * Custom_name(CustomObject *self, PyObject *Py_UNUSED(ignored))
+static PyObject * Custom_get_name(CustomObject *self, PyObject *Py_UNUSED(ignored))
 {   // Py_UNUSED 这个可用于函数定义中未使用的参数以隐藏编译器警告
     if (self->first == NULL) 
     {
@@ -145,6 +146,39 @@ static PyObject * Custom_name(CustomObject *self, PyObject *Py_UNUSED(ignored))
     return PyUnicode_FromFormat("%S %S", self->first, self->last);
 }
 
+// 定义Python对象函数
+static void Custom_change_name(CustomObject *self, PyObject *args, PyObject *kwds)
+{   // Py_UNUSED 这个可用于函数定义中未使用的参数以隐藏编译器警告
+    static char *kwlist[] = {member_name_first, 
+                             member_name_last,
+                             member_name_number, 
+                             NULL};
+    PyObject *first = NULL, *last = NULL, *tmp;
+    // 解析构造函数参数
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OOi", kwlist,
+                                     &first, &last,
+                                     &self->number))
+    {
+        return;
+    }
+    if (first)                  // 若原first值不为空
+    {
+        tmp = self->first;
+        Py_INCREF(first);       // 增加 新赋值变量first的 引用计数
+        self->first = first;
+        printf("change first name: %s->%s\n", PyUnicode_AS_DATA(tmp), PyUnicode_AS_DATA(first));
+        Py_XDECREF(tmp);        // 减少 原变量的  引用计数
+    }
+    if (last)                   // 若原last值不为空
+    {
+        tmp = self->last;
+        Py_INCREF(last);        // 增加 新赋值变量last的 引用计数
+        self->last = last;
+        printf("change last name: %s->%s\n", PyUnicode_AS_DATA(tmp), PyUnicode_AS_DATA(last));
+        Py_XDECREF(tmp);        // 减少 原变量的  引用计数
+    }
+}
+
 // 模块初始化
 // 这个结构体必须传递给解释器的模块初始化函数。初始化函数必须命名为 PyInit_name() ，
 // 其中 name 是模块的名字，并应该定义为非 static ，且在模块文件里
@@ -152,7 +186,8 @@ PyMODINIT_FUNC PyInit_custom(void)
 {
     PyObject *m;
     // 对模块函数列表进行初始化
-    Custom_methods[0] = {"name", (PyCFunction) Custom_name, METH_NOARGS, "Return the name, combining the first and last name"};
+    Custom_methods[0] = {"get_name", (PyCFunction) Custom_get_name, METH_NOARGS, "Return the name, combining the first and last name"};
+    Custom_methods[0] = {"change_name", (PyCFunction) Custom_change_name, METH_VARARGS, "Change the name, first name and last name"};
     Custom_methods[1] = {NULL};
     // 对模块变量列表进行初始化
     Custom_members[0] = {member_name_first, T_OBJECT_EX, offsetof(CustomObject, first), 0, member_doc_first};

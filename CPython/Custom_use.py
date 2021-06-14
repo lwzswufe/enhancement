@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.abspath("."))
+print(os.path.abspath("."))
 import custom
 
 '''
@@ -7,5 +11,7 @@ Donald_Trump = custom.Custom("Donald", "Trump", 1)          # __new__()  __init_
 Hillary_Clinton = custom.Custom("Hillary", "Clinton", 1)    # __new__()  __init__()
 del Hillary_Clinton                                         # __del__()
 full_name = Donald_Trump.name()                             # 使用类方法
+print(full_name)
+Donald_Trump.change_name("Hillary")
 print(full_name)
 print("program  end.....")
