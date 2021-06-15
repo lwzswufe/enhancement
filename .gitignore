@@ -2,6 +2,7 @@
 *.name
 .idea/enhancement.iml
 Communication/__pycache__/__init__.cpython-35.pyc
+Scikit-Learn/tf_logs/*
 *.pyc
-*.pyc
-*.pyc
+*.so
+*.pyd
