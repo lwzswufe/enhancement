@@ -7,8 +7,11 @@
 
 /*
 编译命令:
+Windows 打包为pyd文件
+Linux   打包为so 文件
 g++ Custom.cpp -D_hypot=hypot -I C:\\Anaconda3\\include -L C:\\Anaconda3 -l python3.7 -o custom.pyd -shared -fPIC
-g++ Custom.cpp -D_hypot=hypot -I /home/wiz/anaconda3/include/python3.8  -L /home/wiz/anaconda3/lib -l python3.8 -o custom.pyd -shared -fPIC
+g++ Custom.cpp -D_hypot=hypot -I /home/wiz/anaconda3/include/python3.8  -L /home/wiz/anaconda3/lib -l python3.8 -o custom.so -shared -fPIC
+g++ Custom.cpp -D_hypot=hypot -I /home/anaconda3/include/python3.7m  -L /home/wiz/anaconda3/lib -l python3.7m -o custom.so -shared -fPIC
 add "-D_hypot=hypot" for error: '::hypot' has not been declared 
 */
 /*
