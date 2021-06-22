@@ -30,11 +30,6 @@ PyObject_HEAD 是强制要求必须在每个对象结构体之前，用以定义
 // METH_KEYWORDS 值表示接受关键字参数。这种情况下C函数需要接受第三个 PyObject * 对象，表示字典参数，
 // 使用 PyArg_ParseTupleAndKeywords() 来解析出参数
 // 这个方法表必须被模块定义结构所引用
-// 定义成员函数
-static PyMethodDef QuoteSpi_methods[4] = {};
-
-// 定义成员变量
-static PyMemberDef QuoteSpi_members[8] = {};
 
 
 // 定义MarketData成员函数
@@ -44,7 +39,7 @@ static PyMethodDef MarketData_methods[4] = {};
 static PyMemberDef MarketData_members[4] = {};
 
 // 行情数据类的对象 object 包含了： MarketData 结构，这会为每个 MarketData 实例分配一次。
-struct MarketDataType
+struct MarketData
 {
     PyObject_HEAD;   // PyObject_HEAD 是强制要求必须在每个对象结构体之前，用以定义一个类型为 PyObject 
                      // 的字段叫 ob_base ，包含了一个指针指向类型对象和一个引用计数
@@ -52,6 +47,13 @@ struct MarketDataType
     PyObject* last_pr;
     PyObject* b1_pr;
     PyObject* s1_pr;
+};
+
+// 定义QuoteType 结构体，其定义了一堆标识和函数指针，会指向解释器里请求的操作
+// 定义Python类型
+static PyTypeObject MarketDataType
+{
+    PyVarObject_HEAD_INIT(NULL, 0)  // 这一行是强制的样板 用于初始化 PyVarObject_HEAD_INIT(type, size)
 };
 
 // 测试数据结构体
@@ -64,38 +66,16 @@ struct SimpleQuotaData
 };
 
 static std::deque<const SimpleQuotaData* > QueueMarketData{};
-static MarketDataType DATA{};
-// 读取测试数据
-SimpleQuotaData* ReadData(const char* filename)
-{
-    FILE* fp = fopen(filename, "r");
-    if (fp == nullptr)
-        perror("error in open file\n");
-    char line[1024];
-    SimpleQuotaData head{}, *temp{&head};
-    head.next = nullptr;
-    while( fgets(line, 1024, fp))
-    {   
-        SimpleQuotaData* new_data = new SimpleQuotaData;
-        strncpy(new_data->code, line, CODE_SIZE);
-        new_data->code[CODE_SIZE - 1] = 0;
-        int read_n = sscanf(line+7, "%lf,%lf,%lf", &(new_data->last_pr), &(new_data->b1_pr), &(new_data->s1_pr));
-        // printf("read %s: %s,%.2lf,%.2lf,%.2lf\n", line, new_data->code, new_data->last_pr, new_data->b1_pr, new_data->s1_pr);
-        temp->next = new_data;
-        temp = new_data;
-        new_data->next = nullptr;
-    }
-    fclose(fp);
-    return head.next;
-}
 
 static PyObject* ReadData(PyObject* self, PyObject* args)
 {   
     // 返回python列表 list
-    FILE* fp = fopen(filename, "r");
+    FILE* fp = fopen("MarketData", "r");
     if (fp == nullptr)
         perror("error in open file\n");
     char line[1024];
+    int count = 0;
+    printf("read %d data size:%lu \n", count, QueueMarketData.size());
     while( fgets(line, 1024, fp))
     {   
         SimpleQuotaData* new_data = new SimpleQuotaData;
@@ -103,10 +83,12 @@ static PyObject* ReadData(PyObject* self, PyObject* args)
         new_data->code[CODE_SIZE - 1] = 0;
         int read_n = sscanf(line+7, "%lf,%lf,%lf", &(new_data->last_pr), &(new_data->b1_pr), &(new_data->s1_pr));
         // printf("read %s: %s,%.2lf,%.2lf,%.2lf\n", line, new_data->code, new_data->last_pr, new_data->b1_pr, new_data->s1_pr);
-        QueueMarketData.put(new_data);
+        QueueMarketData.push_back(new_data);
+        ++count;
     }
     fclose(fp);
-    return pList;
+    printf("read %d data size:%lu \n", count, QueueMarketData.size());
+    Py_RETURN_NONE;
 }
 
 static PyObject* GetData(PyObject* self, PyObject* args)
@@ -117,14 +99,17 @@ static PyObject* GetData(PyObject* self, PyObject* args)
     {
         const SimpleQuotaData* pData = QueueMarketData[0];
         QueueMarketData.pop_front();
-        
+        // TYPE* PyObject_New(TYPE, PyTypeObject *type)
+        // TYPE C类型
+        // PyTypeObject Python类型
+        MarketData* pPyData = PyObject_New(MarketData, &MarketDataType);
         // 字符串 code
-        DATA.code = PyBytes_FromString(pData->code)
+        pPyData->code = PyBytes_FromString(pData->code);
         // 浮点型数据 timenum d_vol tradevol total_sell_vol
-        DATA.last_pr = PyFloat_FromDouble(pData->last_pr);
-        DATA.b1_pr = PyFloat_FromDouble(pData->b1_pr);
-        DATA.s1_pr = PyFloat_FromDouble(pData->s1_pr);
-        return &DATA;
+        pPyData->last_pr = PyFloat_FromDouble(pData->last_pr);
+        pPyData->b1_pr = PyFloat_FromDouble(pData->b1_pr);
+        pPyData->s1_pr = PyFloat_FromDouble(pData->s1_pr);
+        return (PyObject*)pPyData;
     }
 }
 // 定义模块方法表
@@ -135,8 +120,8 @@ static PyObject* GetData(PyObject* self, PyObject* args)
 // 类的所有成员函数结构列表同样是以全NULL结构结束
 static PyMethodDef Module_MethodMembers[4]
 {
-    { "Read", (PyCFunction)ReadData, METH_VARARGS, "read data" },
-    { "Get", (PyCFunction)ReadData, METH_VARARGS, "read data" },
+    { "Read", (PyCFunction)ReadData, METH_NOARGS, "read data" },
+    { "Get", (PyCFunction)GetData, METH_NOARGS, "get data" },
     { NULL, NULL, 0, NULL }
 };
 
@@ -144,7 +129,7 @@ static PyMethodDef Module_MethodMembers[4]
 static PyModuleDef Quotemodule = 
 {
     PyModuleDef_HEAD_INIT,
-    .m_name = "Quote",
+    .m_name = "QuoteSpi",
     .m_doc = "Example module that creates an extension type.",
     .m_size = -1,
     .m_methods = Module_MethodMembers
@@ -153,7 +138,7 @@ static PyModuleDef Quotemodule =
 // 模块初始化
 // 这个结构体必须传递给解释器的模块初始化函数。初始化函数必须命名为 PyInit_name() ，
 // 其中 name 是模块的名字，并应该定义为非 static ，且在模块文件里
-PyMODINIT_FUNC PyInit_Quote(void)
+PyMODINIT_FUNC PyInit_QuoteSpi(void)
 {
     PyObject *m;
     //
@@ -166,17 +151,17 @@ PyMODINIT_FUNC PyInit_Quote(void)
     doc	    const char *	points to the contents of the docstring
     */
     // 定义类变量
-    MarketData_members[0] = {"code", T_OBJECT_EX, setoffsetof(MarketDataType, code),  READONLY, "code[6] like 600000"}; 
-    MarketData_members[1] = {"last_pr", T_DOUBLE, setoffsetof(MarketDataType, last_pr),  READONLY, "last price"}; 
-    MarketData_members[2] = {"b1_pr", T_DOUBLE, setoffsetof(MarketDataType, b1_pr),  READONLY, "bid 1 price"}; 
-    MarketData_members[3] = {"s1_pr",T_DOUBLE, setoffsetof(MarketDataType, s1_pr),  READONLY, "ask 1 price"}; 
+    MarketData_members[0] = {"code", T_OBJECT_EX, offsetof(MarketData, code),  READONLY, "code[6] like 600000"}; 
+    MarketData_members[1] = {"last_pr", T_DOUBLE, offsetof(MarketData, last_pr),  READONLY, "last price"}; 
+    MarketData_members[2] = {"b1_pr", T_DOUBLE, offsetof(MarketData, b1_pr),  READONLY, "bid 1 price"}; 
+    MarketData_members[3] = {"s1_pr",T_DOUBLE, offsetof(MarketData, s1_pr),  READONLY, "ask 1 price"}; 
     MarketData_members[4] = { NULL }; 
 
     MarketData_methods[0] = { NULL };
     
     MarketDataType.tp_name = "QuoteSpi.MarketData";     // 类型描述  __str__
     MarketDataType.tp_doc = "MarketData objects";     // 文档 help调用
-    MarketDataType.tp_basicsize = sizeof(MarketDataType);
+    MarketDataType.tp_basicsize = sizeof(MarketData);
     MarketDataType.tp_itemsize = 0;
     MarketDataType.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
     MarketDataType.tp_members = MarketData_members;   // 定义类变量
@@ -190,11 +175,12 @@ PyMODINIT_FUNC PyInit_Quote(void)
         return NULL;
     // 添加类型到模块
     Py_INCREF(&MarketDataType);
-    if (PyModule_AddObject(m, "MarketData", (PyObject *) &MarketDataType) < 0) {
+    if (PyModule_AddObject(m, "MarketData", (PyObject *) &MarketDataType) < 0) 
+    {
         Py_XDECREF(&MarketDataType);
         Py_XDECREF(m);
         return NULL;
     }
-
+    QueueMarketData.clear();
     return m;
 }
