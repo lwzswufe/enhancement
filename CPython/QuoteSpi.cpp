@@ -51,7 +51,7 @@ struct MarketData
     PyObject* code;
 };
 
-// 定义QuoteType 结构体，其定义了一堆标识和函数指针，会指向解释器里请求的操作
+// 定义QuoteSpiType 结构体，其定义了一堆标识和函数指针，会指向解释器里请求的操作
 // 定义Python类型 python调用的类型
 static PyTypeObject MarketDataType
 {
@@ -71,7 +71,7 @@ struct SimpleQuotaData
 std::deque<const SimpleQuotaData* > QueueMarketData{};
 
 
-static PyObject* ReadData(PyObject* self, PyObject* args)
+static void ReadData()
 {   
     // 返回python列表 list
     FILE* fp = fopen("MarketData", "r");
@@ -94,10 +94,111 @@ static PyObject* ReadData(PyObject* self, PyObject* args)
     }
     fclose(fp);
     printf("read %d data, deque size:%lu \n", count, QueueMarketData.size());
+}
+
+static PyObject * 
+MarketData_str(MarketData* self, PyObject* args, PyObject *kwds)
+{
+    char s[256];
+    sprintf(s, "str(): %s, %.2lf,%.2lf,%.2lf", PyUnicode_AsUTF8(self->code),
+             self->last_pr, self->b1_pr,  self->s1_pr);
+    PyObject* pString = PyUnicode_FromString(s);
+    return pString;
+}
+
+// 定义成员函数
+static PyMethodDef BaseStrategy_methods[4] = {};
+
+// 定义成员变量
+static PyMemberDef BaseStrategy_members[4] = {};
+
+//  QuoteSpi 类的对象 object 包含了： QuoteSpi 结构，这会为每个 QuoteSpi 实例分配一次。
+typedef struct BaseStrategy
+{
+    PyObject_HEAD    // PyObject_HEAD 是强制要求必须在每个对象结构体之前，用以定义一个类型为 PyObject 
+                     // 的字段叫 ob_base ，包含了一个指针指向类型对象和一个引用计数
+} BaseStrategyObject;
+
+// 定义QuoteSpiType 结构体，其定义了一堆标识和函数指针，会指向解释器里请求的操作
+// 定义Python类型
+static PyTypeObject BaseStrategyType
+{
+    PyVarObject_HEAD_INIT(NULL, 0)  // 这一行是强制的样板 用于初始化 PyVarObject_HEAD_INIT(type, size)
+};
+
+
+// 注册策略
+static int QuoteSpi_Regisiter(PyObject* self, PyObject* args)
+{   
+    PyObject* pStg;
+    if (!PyArg_ParseTuple(args, "O", pStg))
+        return -1;
+    // 类型检查
+    if (PyList_Append(self->StrategyList, pStg) >= 0)
+    {
+        return 0;
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+// 回调函数
+static PyObject* QuoteSpi_OnMarket(PyObject* self, PyObject* args)
+{   
     Py_RETURN_NONE;
 }
 
-static PyObject* GetData(PyObject* self, PyObject* args)
+// 定义成员函数
+static PyMethodDef QuoteSpi_methods[4] = {};
+
+// 定义成员变量
+static PyMemberDef QuoteSpi_members[4] = {};
+
+//  QuoteSpi 类的对象 object 包含了： QuoteSpi 结构，这会为每个 QuoteSpi 实例分配一次。
+typedef struct QuoteSpi
+{
+    PyObject_HEAD    // PyObject_HEAD 是强制要求必须在每个对象结构体之前，用以定义一个类型为 PyObject 
+                     // 的字段叫 ob_base ，包含了一个指针指向类型对象和一个引用计数
+    PyObject* StrategyList; // 策略列表
+} QuoteSpiObject;
+
+// 定义QuoteSpiType 结构体，其定义了一堆标识和函数指针，会指向解释器里请求的操作
+// 定义Python类型
+static PyTypeObject QuoteSpiType
+{
+    PyVarObject_HEAD_INIT(NULL, 0)  // 这一行是强制的样板 用于初始化 PyVarObject_HEAD_INIT(type, size)
+};
+
+// 定义Python对象函数 __del__()
+static void QuoteSpi_dealloc(QuoteSpiObject *self)
+{
+    Py_TYPE(self)->tp_free((PyObject *) self);  // 释放对象
+    printf("__del__()\n");
+}
+
+// 定义Python对象函数  __new__()
+static PyObject * QuoteSpi_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+{
+    QuoteSpiObject *self;
+    self = (QuoteSpiObject *) type->tp_alloc(type, 0);     // 构造新对象
+    if (self != NULL)                                   // 为新对象赋值
+    {
+    }
+    printf("__new__()\n");
+    return (PyObject *) self;                           // 返回 实例
+}
+
+// Python对象 初始化函数 __init__()
+static int QuoteSpi_init(QuoteSpiObject *self, PyObject *args, PyObject *kwds)
+{   
+    StrategyList = PyList_New();
+    ReadData();
+    return 0;
+}
+
+static PyObject* QuoteSpi_get(PyObject* self, PyObject* args)
 {   
     if (QueueMarketData.empty())
         Py_RETURN_NONE;
@@ -124,28 +225,6 @@ static PyObject* GetData(PyObject* self, PyObject* args)
     }
 }
 
-static PyObject * 
-MarketData_str(MarketData* self, PyObject* args, PyObject *kwds)
-{
-    char s[256];
-    sprintf(s, "str(): %s, %.2lf,%.2lf,%.2lf", PyUnicode_AsUTF8(self->code),
-             self->last_pr, self->b1_pr,  self->s1_pr);
-    PyObject* pString = PyUnicode_FromString(s);
-    return pString;
-}
-
-// 定义模块方法表
-// 第一个字段：在 Python 里面使用的方法名；
-// 第二个字段：C 模块内的函数名；
-// 第三个字段：方法参数类型，是无参数(METH_NOARGS) , 还是有位置参数(METH_VARARGS), 还是其他等等；
-// 第四个字段：方法描述，就是通过 help() 或者 doc 可以看到的
-// 类的所有成员函数结构列表同样是以全NULL结构结束
-static PyMethodDef Module_MethodMembers[4]
-{
-    { "Read", (PyCFunction)ReadData, METH_NOARGS, "read data" },
-    { "Get", (PyCFunction)GetData, METH_NOARGS, "get data" },
-    { NULL, NULL, 0, NULL }
-};
 
 // 定义模块信息
 static PyModuleDef Quotemodule = 
@@ -153,8 +232,7 @@ static PyModuleDef Quotemodule =
     PyModuleDef_HEAD_INIT,
     .m_name = "QuoteSpi",
     .m_doc = "Example module that creates an extension type.",
-    .m_size = -1,
-    .m_methods = Module_MethodMembers
+    .m_size = -1
 };
 
 // 模块初始化
@@ -173,7 +251,7 @@ PyMODINIT_FUNC PyInit_QuoteSpi(void)
     doc	    const char *	points to the contents of the docstring
     */
    // 结构体的各个元素在结构体里的位置
-   printf("offset: code:%d last_pr:%d b1_pr:%d s1_pr:%d\n", offsetof(MarketData, code), 
+   printf("offset: code:%lu last_pr:%lu b1_pr:%lu s1_pr:%lu\n", offsetof(MarketData, code), 
         offsetof(MarketData, last_pr), offsetof(MarketData, b1_pr), offsetof(MarketData, s1_pr));
     // 定义类变量
     MarketData_members[0] = {"code", T_OBJECT_EX, offsetof(MarketData, code),  0, "code[6] like 600000"}; 
@@ -196,6 +274,43 @@ PyMODINIT_FUNC PyInit_QuoteSpi(void)
     if (PyType_Ready(&MarketDataType) < 0)
         return NULL;
 
+    // 定义类变量
+    BaseStrategy_members[0] = { NULL }; 
+
+    BaseStrategy_methods[0] = {"OnMarket", (PyCFunction)QuoteSpi_OnMarket, METH_VARARGS, "OnMarket"};
+    BaseStrategy_methods[1] = { NULL };
+    
+    BaseStrategyType.tp_name = "QuoteSpi.BaseStrategy";     // 类型描述  __str__
+    BaseStrategyType.tp_doc = "BaseStrategy objects";     // 文档 help调用
+    BaseStrategyType.tp_basicsize = sizeof(BaseStrategy);
+    BaseStrategyType.tp_itemsize = 0;
+    BaseStrategyType.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
+    BaseStrategyType.tp_members = BaseStrategy_members;   // 定义类变量
+    BaseStrategyType.tp_methods = BaseStrategy_methods;
+
+    if (PyType_Ready(&MarketDataType) < 0)
+        return NULL;
+
+     // 对模块函数列表进行初始化
+    QuoteSpi_methods[0] = {"get", (PyCFunction) QuoteSpi_get, METH_NOARGS, "get data"};
+    QuoteSpi_methods[1] = {NULL};
+    // 对模块变量列表进行初始化
+    QuoteSpi_members[0] = {NULL};
+    // 类型函数初始化
+    QuoteSpiType.tp_name = "Quote.QuoteAPI";     // 类型描述  __str__
+    QuoteSpiType.tp_doc = "Quote objects";     // 文档 help调用
+    QuoteSpiType.tp_basicsize = sizeof(QuoteSpiObject);
+    QuoteSpiType.tp_itemsize = 0;
+    QuoteSpiType.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
+    QuoteSpiType.tp_new = QuoteSpi_new;   // 等效于Python method __new__()  
+    QuoteSpiType.tp_init = (initproc) QuoteSpi_init; // 初始化 __init__()
+    QuoteSpiType.tp_dealloc = (destructor) QuoteSpi_dealloc; // 释放内存 __del__()
+    QuoteSpiType.tp_members = QuoteSpi_members;   // 定义类变量
+    QuoteSpiType.tp_methods = QuoteSpi_methods;   // 定义类方法
+
+    if (PyType_Ready(&QuoteSpiType) < 0)
+        return NULL;
+
     m = PyModule_Create(&Quotemodule);
     if (m == NULL)
         return NULL;
@@ -204,6 +319,13 @@ PyMODINIT_FUNC PyInit_QuoteSpi(void)
     if (PyModule_AddObject(m, "MarketData", (PyObject *) &MarketDataType) < 0) 
     {
         Py_XDECREF(&MarketDataType);
+        Py_XDECREF(m);
+        return NULL;
+    }
+    Py_INCREF(&QuoteSpiType);
+    if (PyModule_AddObject(m, "QuoteSpi", (PyObject *) &QuoteSpiType) < 0) 
+    {
+        Py_XDECREF(&QuoteSpiType);
         Py_XDECREF(m);
         return NULL;
     }
