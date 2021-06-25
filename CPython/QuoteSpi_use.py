@@ -40,10 +40,9 @@ class UserStrategy(BaseStrategy):
 
 
 user_stg = UserStrategy()
-if spi.Register(user_stg):
-    print("register user successful")
-else:
-    print("register user failed")
+spi.Register(user_stg)
+no_stg = "   "
+spi.Register(no_stg)
 
 time_st = time.time()
 # 使用python循环调用策略与 使用C++调用策略差别不大
@@ -58,7 +57,7 @@ if True:
         # stg.OnMarket(data)
         # user_stg.OnMarket(data)
         data = spi.get()
-else:
-    spi.Start()
+# else:
+#     spi.Start()
 used_time = time.time() - time_st
 print("program used:{:.3f}s".format(used_time))         # 程序结束 

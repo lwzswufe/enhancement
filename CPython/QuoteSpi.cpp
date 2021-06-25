@@ -291,8 +291,19 @@ static PyObject* QuoteSpi_Register(QuoteSpiObject* self, PyObject* args)
         pStg = PyTuple_GET_ITEM(args, 0);
         printf("spi register arg parse success return stg:%p\n", pStg);
     }
-    self->VecStg.push_back(pStg);
     // 类型检查
+    int res = PyObject_IsInstance(pStg, (PyObject*)&BaseStrategyType);
+    if (res > 0)
+    {
+        printf("is BaseStrategy\n");
+    }
+    else
+    {
+        printf("is not BaseStrategy\n");
+        Py_RETURN_FALSE;
+    }
+    self->VecStg.push_back(pStg);
+    // 添加到队列
     if (PyList_Append(self->StrategyList, pStg) >= 0)
     {   
         printf("spi register append strategy success\n");
