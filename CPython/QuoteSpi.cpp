@@ -49,6 +49,8 @@ typedef struct MarketData
     double last_pr;
     double  b1_pr;
     double  s1_pr;
+    char  ccode[7];
+    const char* pcode;
     PyObject* code;
 } MarketDataObject;
 
@@ -266,11 +268,13 @@ static PyObject* QuoteSpi_get(PyObject* self, PyObject* args)
         // printf("before %p code:%p last_pr:%p b1_pr:%p s1_pr:%p\n", pPyData, pPyData->code, pPyData->last_pr, pPyData->b1_pr, pPyData->s1_pr);
         // 字符串 code
         pPyData->code = PyUnicode_FromString(pData->code);
+        strncpy(pPyData->ccode, pData->code, 7);
+        pPyData->pcode = pPyData->ccode;
         // 浮点型数据
         pPyData->last_pr = pData->last_pr;
         pPyData->b1_pr = pData->b1_pr;
         pPyData->s1_pr = pData->s1_pr;
-        // printf("after  %p code:%p last_pr:%p b1_pr:%p s1_pr:%p\n", pPyData, pPyData->code, pPyData->last_pr, pPyData->b1_pr, pPyData->s1_pr);
+        printf("code:%s last_pr:%.2lf b1_pr:%.2lf s1_pr:%.2lf\n", pPyData->ccode, pPyData->last_pr, pPyData->b1_pr, pPyData->s1_pr);
         // printf("%.2lf,%.2lf,%.2lf\n", PyFloat_AsDouble(pPyData->last_pr),  PyFloat_AsDouble(pPyData->b1_pr),  PyFloat_AsDouble(pPyData->s1_pr));
         return (PyObject*)pPyData;
     }
@@ -378,11 +382,13 @@ PyMODINIT_FUNC PyInit_QuoteSpi(void)
    printf("offset: code:%lu last_pr:%lu b1_pr:%lu s1_pr:%lu\n", offsetof(MarketData, code), 
         offsetof(MarketData, last_pr), offsetof(MarketData, b1_pr), offsetof(MarketData, s1_pr));
     // 定义类变量
-    MarketData_members[0] = {"code", T_OBJECT_EX, offsetof(MarketData, code),  0, "code[6] like 600000"}; 
-    MarketData_members[1] = {"last_pr", T_DOUBLE, offsetof(MarketData, last_pr),  0, "last price"}; 
-    MarketData_members[2] = {"b1_pr", T_DOUBLE, offsetof(MarketData, s1_pr),  0, "bid 1 price"}; 
-    MarketData_members[3] = {"s1_pr",T_DOUBLE, offsetof(MarketData, b1_pr),  0, "ask 1 price"}; 
-    MarketData_members[4] = { NULL }; 
+    
+    MarketData_members[0] = {"last_pr", T_DOUBLE, offsetof(MarketData, last_pr),  0, "last price"}; 
+    MarketData_members[1] = {"b1_pr", T_DOUBLE, offsetof(MarketData, s1_pr),  0, "bid 1 price"}; 
+    MarketData_members[2] = {"s1_pr",T_DOUBLE, offsetof(MarketData, b1_pr),  0, "ask 1 price"}; 
+    MarketData_members[3] = {"pcode", T_STRING, offsetof(MarketData, pcode),  0, "code[6] like 600000"}; 
+    MarketData_members[4] = {"code", T_OBJECT_EX, offsetof(MarketData, code),  0, "code[6] like 600000"}; 
+    MarketData_members[5] = { NULL }; 
 
     MarketData_methods[0] = {"str", (PyCFunction)MarketData_str, METH_NOARGS, "str"};
     MarketData_methods[1] = { NULL };

@@ -11,7 +11,7 @@ from QuoteSpi import MarketData, QuoteSpi, BaseStrategy
 
 print("class MarketData:")
 for key in MarketData.__dict__.keys():
-    print("{}:{}".format(key, MarketData.__dict__[key]))
+    print("{}:{}  {}".format(key, MarketData.__dict__[key], type(MarketData.__dict__[key])))
 print("++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
 print("class BaseStrategy:")
@@ -45,17 +45,20 @@ no_stg = "   "
 spi.Register(no_stg)
 
 time_st = time.time()
+count = 0
 # 使用python循环调用策略与 使用C++调用策略差别不大
 if True:
     data = spi.get()
     print("data type:{} code ".format(type(data)))
-    while data is not None:
-        # print("code:{} last_pr:{:.2f} b1pr:{:.2f} s1pr:{:.2f}".format(data.code, data.last_pr, data.b1_pr, data.s1_pr))
+    while data is not None and count < 7:
+        print(data.pcode, type(data.pcode))
+        # print("code:{} last_pr:{:.2f} b1pr:{:.2f} s1pr:{:.2f}".format(data.ccode, data.last_pr, data.b1_pr, data.s1_pr))
         # print(data.str())
         for s in spi.StrategyList:
             s.OnMarket(data)
         # stg.OnMarket(data)
         # user_stg.OnMarket(data)
+        count += 1
         data = spi.get()
 # else:
 #     spi.Start()
