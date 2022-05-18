@@ -9,3 +9,22 @@ VScode 配置信息
         "python": "cd $dir && set PYTHONIOENCODING=utf8 && C:\\Anaconda3\\python -u $fileName",
         }
 }
+
+VScode 设置注释颜色
+"editor.tokenColorCustomizations": {
+    "comments": "#9fc29f",
+    "textMateRules": [
+        {
+            "scope": "string.quoted.docstring.multi.python",
+            "settings": {
+                "foreground": "#9fc29f"
+            }
+        },
+        {
+            "scope": "string.quoted.docstring.multi.cpp",
+            "settings": {
+                "foreground": "#9fc29f"
+            }
+        }
+    ]
+},
